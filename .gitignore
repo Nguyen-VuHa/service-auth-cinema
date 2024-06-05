@@ -1,0 +1,5 @@
+*.env
+go.sum
+
+service-auth.exe
+service-auth.exe~
