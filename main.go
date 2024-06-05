@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	initializers "service-auth/Initializers"
+	routers "service-auth/Routers"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -26,18 +27,21 @@ func main() {
 	r.Use(cors.New(config))
 
 	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    200,
+		c.JSON(http.StatusOK, gin.H{
+			"code":    http.StatusOK,
 			"status":  "OK",
 			"message": "Hello World API",
 		})
 	})
 
+	apiGroup := r.Group("/api")
+	routers.MainRoutes(apiGroup)
+
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"code":    500,
+			"code":    http.StatusNotFound,
 			"status":  "ERROR",
-			"message": "API Not Found",
+			"message": "NETWORK ERROR.",
 		})
 	})
 
