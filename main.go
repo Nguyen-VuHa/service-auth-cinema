@@ -10,22 +10,27 @@ import (
 )
 
 func init() {
-	initializers.LoadEnvVariables()
-	initializers.ConnectDatabase()
-	initializers.MigrateDatabase()
+	initializers.LoadEnvVariables() // Khởi tạo các biến trong file .env
+	initializers.ConnectDatabase()  // Connect với Database
+	initializers.MigrateDatabase()  // Khởi tạo database trong Models
 }
 
 func main() {
+	// khởi tạo mặt định Gin framework
 	r := gin.Default()
 
+	// config CORS
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"*"} // You can change "*" with your specific domain
+
+	config.AllowOrigins = []string{"*"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production
+	// config CORS allow các method request và các params trên header
 	config.AllowCredentials = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 
-	r.Use(cors.New(config))
+	r.Use(cors.New(config)) // set router đi vào CORS kiểm tra trước khi server chuyển hướng router để xử lý
 
+	// API default -> kiểm tra server khi run
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code":    http.StatusOK,
@@ -34,9 +39,11 @@ func main() {
 		})
 	})
 
+	// group API với đường dẫn /api
 	apiGroup := r.Group("/api")
 	routers.MainRoutes(apiGroup)
 
+	// Kiểm tra các routes không hợp lệ không nằm trong khai báo sẽ trả kết quả về ở đây - tương đương với Page Not Found
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
 			"code":    http.StatusNotFound,
@@ -45,5 +52,6 @@ func main() {
 		})
 	})
 
+	// run server với default port 8080 hoặc biến PORT trong .env
 	r.Run()
 }

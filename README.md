@@ -22,3 +22,11 @@
 + Repository Pattern
 </p>
  
+
+### Tính năng:
+#### 1. Đăng nhập
+#### 2. Đăng ký
+#### 3. Đăng nhập với Facebook
+#### 4. Đăng nhập với Google
+#### 5. Đổi mật khẩu
+#### 6. Xác thực tài khoản
