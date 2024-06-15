@@ -1,4 +1,4 @@
-package data_layers
+package user_data_layer
 
 import (
 	"fmt"
@@ -42,12 +42,12 @@ func (data *UserDataLayer) GetUserByConditions(conditions map[string]interface{}
 
 // *Áp dụng Design Pattern Strategy cho method Execute
 type UserExecuteQuery interface {
-	Execute(DB *gorm.DB) error
+	ExecuteUser(DB *gorm.DB) (*models.User, error)
 }
 
 // create strategy user execute
-func (data *UserDataLayer) UserExecute(execute UserExecuteQuery) error {
-	return execute.Execute(data.DB)
+func (data *UserDataLayer) UserExecute(execute UserExecuteQuery) (*models.User, error) {
+	return execute.ExecuteUser(data.DB)
 }
 
 // khai báo trúc Action Create New User
@@ -55,8 +55,9 @@ type CreateUserExecute struct {
 	Data *models.User
 }
 
-func (create *CreateUserExecute) Execute(DB *gorm.DB) error {
+// thực thi tạo user với hàm ExecuteUser
+func (create *CreateUserExecute) ExecuteUser(DB *gorm.DB) (*models.User, error) {
 	errCreate := DB.Create(&create.Data).Error
 
-	return errCreate
+	return create.Data, errCreate
 }

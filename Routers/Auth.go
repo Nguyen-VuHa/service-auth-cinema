@@ -2,7 +2,7 @@ package routers
 
 import (
 	controllers "service-auth/Controllers"
-	data_layers "service-auth/DataLayers"
+	user_data_layer "service-auth/DataLayers/User"
 	initializers "service-auth/Initializers"
 	repositories "service-auth/Repositories"
 	auth_services "service-auth/Services/AuthServices"
@@ -11,8 +11,7 @@ import (
 )
 
 func AuthRoutes(routes *gin.RouterGroup) {
-
-	var userDataLayer = data_layers.NewUserDataLayer(initializers.DB)
+	var userDataLayer = user_data_layer.NewUserDataLayer(initializers.DB)
 	var userRepository = repositories.NewIntanceUserDataLayer(userDataLayer)
 	var authService = auth_services.NewAuthService(userRepository)
 	var authController = controllers.NewAuthController(authService)

@@ -1,6 +1,7 @@
 package models
 
 import (
+	constants "service-auth/Constants"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,15 +11,15 @@ type UserStatus string
 type UserType string
 
 var (
-	Pending UserStatus = "pending"
-	Active  UserStatus = "active"
-	Hidden  UserStatus = "hidden"
-	Blocked UserStatus = "blocked"
+	Pending UserStatus = constants.USER_STATUS_PENDING
+	Active  UserStatus = constants.USER_STATUS_ACTIVE
+	Hidden  UserStatus = constants.USER_STATUS_HIDDEN
+	Blocked UserStatus = constants.USER_STATUS_BLOCKED
 )
 
 var (
-	Normal  UserType = "normal"
-	Another UserType = "another"
+	Normal  UserType = constants.USER_TYPE_NORMAL
+	Another UserType = constants.USER_TYPE_ANOTHER
 )
 
 type User struct {

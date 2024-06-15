@@ -1,8 +1,9 @@
 package repositories
 
 import (
+	constants "service-auth/Constants"
 	"service-auth/DTO"
-	data_layers "service-auth/DataLayers"
+	user_data_layer "service-auth/DataLayers/User"
 	models "service-auth/Models"
 )
 
@@ -19,11 +20,11 @@ type UserRepository interface {
 
 // Khai báo struct IntanceUserDataLayer thông qua dependency injection (InterfaceUserDataLayer)
 type IntanceUserDataLayer struct {
-	userData *data_layers.UserDataLayer
+	userData *user_data_layer.UserDataLayer
 }
 
 // khởi tạo intance NewIntanceUserDataLayer chưa struct IntanceUserDataLayer
-func NewIntanceUserDataLayer(userData *data_layers.UserDataLayer) *IntanceUserDataLayer {
+func NewIntanceUserDataLayer(userData *user_data_layer.UserDataLayer) *IntanceUserDataLayer {
 	return &IntanceUserDataLayer{userData}
 }
 
@@ -54,12 +55,41 @@ func (intance *IntanceUserDataLayer) CreateNewUser(userDataRequest DTO.SignUp_Re
 	userData.Email = userDataRequest.Email
 	userData.Password = userDataRequest.Password
 	// thêm một số trường với rule khi tạo mới tài khoản
+	userData.UserStatus = constants.USER_STATUS_PENDING
+	userData.UserType = constants.USER_TYPE_NORMAL
 
-	var actionCreateUser = data_layers.CreateUserExecute{
-		Data: &userData,
+	var actionCreateUser user_data_layer.CreateUserExecute
+
+	actionCreateUser.Data = &userData
+
+	var userCreateNew *models.User // khai báo biến lưu trữ record khi tạo mới user.
+	userCreateNew, err = intance.userData.UserExecute(&actionCreateUser)
+
+	// khởi tạo mảng dữ liệu key value -> userProfile
+	var dataUserProfile = make(map[string]interface{})
+
+	dataUserProfile[constants.USER_PROFILE_FULLNAME] = userDataRequest.FullName
+	dataUserProfile[constants.USER_PROFILE_BIRTHDAY] = userDataRequest.BirthDay
+	dataUserProfile[constants.USER_PROFILE_PHONENUMBER] = userDataRequest.PhoneNumber
+
+	var profileKeys = []string{constants.USER_PROFILE_FULLNAME, constants.USER_PROFILE_BIRTHDAY, constants.USER_PROFILE_PHONENUMBER}
+
+	// insert thông tin vào user profile với các field còn lại
+	for _, key := range profileKeys { // 3 số biến object cần lưu vào user profile (FullName, BirthDay, PhoneNumber)
+		var userProfileData models.UserProfile // Khai báo biến để chứa thông tin detail user hợp lệ
+		userProfileData.ProfileKey = key
+		userProfileData.ProfileValue = dataUserProfile[key].(string)
+		userProfileData.UserID = userCreateNew.UserID // Gán UserID khoá ngoại trong UserProfile
+
+		// Khai báo struct CreateUserProfileExecute trong UserProfileExecute
+		var actionCreateUserProfile user_data_layer.CreateUserProfileExecute
+		actionCreateUserProfile.Data = &userProfileData // set Data với tham trị userProfileData
+
+		_, err = intance.userData.UserProfileExecute(&actionCreateUserProfile)
+		if err != nil {
+			return err
+		}
 	}
-
-	err = intance.userData.UserExecute(&actionCreateUser)
 
 	// trả về lỗi (nếu có)
 	return err
