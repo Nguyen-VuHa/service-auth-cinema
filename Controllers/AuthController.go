@@ -11,19 +11,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Khai báo struct IntanceAuthController thông qua dependency injection (auth_services.AuthService)
 type AuthController struct {
 	authService *auth_services.AuthService
 }
 
-// Hàm khởi tạo UserController
+// khởi tạo intance NewAuthController định nghĩa struct AuthController
 func NewAuthController(authService *auth_services.AuthService) *AuthController {
 	return &AuthController{authService}
 }
 
 func (service *AuthController) SignUpController(c *gin.Context) {
-	var signUpResponse viewmodels.SigUpViewModel
+	var signUpResponse viewmodels.SigUpViewModel //
 
-	var bodyRequest DTO.SignUpRequest // khởi tạo bodyRequest
+	var bodyRequest DTO.SignUp_Request // khởi tạo bodyRequest
 
 	if err := c.ShouldBindJSON(&bodyRequest); err != nil { // bind data từ request sang bodyRequest
 		// write log
@@ -35,20 +36,21 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 		signUpResponse.Message = "Invalid JSON format."
 
 		c.JSON(http.StatusBadRequest, signUpResponse)
-
 		return
 	}
 
 	fmt.Println(bodyRequest)
 	// 2.call service Auth execute function sign up
 
-	service.authService.SignInAccount(bodyRequest)
+	data, errResponse, httpS := service.authService.SignUpAccount(bodyRequest)
+	fmt.Println(data)
 	// 3.1. return with function errors
-
 	// 3.2. remain return success
-	signUpResponse.Code = constants.CODE_SUCCESS
-	signUpResponse.Status = constants.STATUS_SUCCESS
-	signUpResponse.Message = "Đăng ký thành công"
+	signUpResponse.BaseReponseDTO = errResponse
 
-	c.JSON(http.StatusOK, signUpResponse)
+	// signUpResponse.Code = constants.CODE_SUCCESS
+	// signUpResponse.Status = constants.STATUS_SUCCESS
+	// signUpResponse.Message = "Đăng ký thành công"
+
+	c.JSON(httpS.HTTPStatus, signUpResponse)
 }

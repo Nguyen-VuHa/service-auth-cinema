@@ -12,7 +12,7 @@ type UserDataLayer struct {
 	DB *gorm.DB
 }
 
-// khởi tạo một instance cho UserDataLayer
+// khởi tạo intance NewUserDataLayer định nghĩa struct UserDataLayer
 func NewUserDataLayer(DB *gorm.DB) *UserDataLayer {
 	return &UserDataLayer{DB}
 }
@@ -38,4 +38,25 @@ func (data *UserDataLayer) GetUserByConditions(conditions map[string]interface{}
 
 	// Trả về người dùng truy xuất được và lỗi nếu có
 	return userData, err
+}
+
+// *Áp dụng Design Pattern Strategy cho method Execute
+type UserExecuteQuery interface {
+	Execute(DB *gorm.DB) error
+}
+
+// create strategy user execute
+func (data *UserDataLayer) UserExecute(execute UserExecuteQuery) error {
+	return execute.Execute(data.DB)
+}
+
+// khai báo trúc Action Create New User
+type CreateUserExecute struct {
+	Data *models.User
+}
+
+func (create *CreateUserExecute) Execute(DB *gorm.DB) error {
+	errCreate := DB.Create(&create.Data).Error
+
+	return errCreate
 }
