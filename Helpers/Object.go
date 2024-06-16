@@ -1,7 +1,12 @@
 package helpers
 
-import "reflect"
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+)
 
+// Trả về keyName với value truyền vào và tìm trong object đó
 func GetKeysByValue(objectData interface{}, value interface{}) []string {
 	var keys []string
 
@@ -28,6 +33,7 @@ func GetKeysByValue(objectData interface{}, value interface{}) []string {
 	return keys
 }
 
+// Trả về value với key truyền vào và tìm trong object đó
 func GetValueByKey(objectData interface{}, key string) (interface{}, bool) {
 	val := reflect.ValueOf(objectData)
 	if val.Kind() == reflect.Ptr {
@@ -40,4 +46,16 @@ func GetValueByKey(objectData interface{}, key string) (interface{}, bool) {
 	}
 
 	return field.Interface(), true
+}
+
+// Hàm tùy chỉnh để chuyển đổi struct sang JSON
+func JSON_Stringify(v interface{}) (string, error) {
+	// Chuyển đổi struct sang JSON
+	jsonData, err := json.Marshal(v)
+
+	if err != nil {
+		return "", fmt.Errorf("error converting struct to JSON: %w", err)
+	}
+
+	return string(jsonData), nil
 }

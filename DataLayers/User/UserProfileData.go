@@ -16,6 +16,7 @@ func (data *UserDataLayer) UserProfileExecute(execute UserProfileExecuteQuery) (
 	return execute.ExecuteUserProfile(data.DB)
 }
 
+// Khởi tạo struct CreateUserProfile
 type CreateUserProfileExecute struct {
 	Data *models.UserProfile
 }

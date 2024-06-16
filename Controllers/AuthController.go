@@ -1,14 +1,15 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
+	initializers "service-auth/Initializers"
 	auth_services "service-auth/Services/AuthServices"
 	viewmodels "service-auth/ViewModels"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // Khai báo struct IntanceAuthController thông qua dependency injection (auth_services.AuthService)
@@ -28,7 +29,9 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&bodyRequest); err != nil { // bind data từ request sang bodyRequest
 		// write log
-		fmt.Println(err.Error())
+		initializers.Logger.Error("Function SignUpController()",
+			zap.String("Error Bind JSON", err.Error()),
+		)
 
 		// set data ViewModel reponse to user
 		signUpResponse.Code = constants.CODE_BAD_REQUEST
@@ -39,18 +42,11 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(bodyRequest)
 	// 2.call service Auth execute function sign up
+	_, errResponse, httpS := service.authService.SignUpAccount(bodyRequest)
 
-	data, errResponse, httpS := service.authService.SignUpAccount(bodyRequest)
-	fmt.Println(data)
-	// 3.1. return with function errors
-	// 3.2. remain return success
+	// Set Response trả về
 	signUpResponse.BaseReponseDTO = errResponse
-
-	// signUpResponse.Code = constants.CODE_SUCCESS
-	// signUpResponse.Status = constants.STATUS_SUCCESS
-	// signUpResponse.Message = "Đăng ký thành công"
 
 	c.JSON(httpS.HTTPStatus, signUpResponse)
 }

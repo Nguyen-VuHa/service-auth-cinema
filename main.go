@@ -13,9 +13,14 @@ func init() {
 	initializers.LoadEnvVariables() // Khởi tạo các biến trong file .env
 	initializers.ConnectDatabase()  // Connect với Database
 	initializers.MigrateDatabase()  // Khởi tạo database trong Models
+	initializers.InitLogger()       //  Khởi tạo logger cho service
 }
 
 func main() {
+	// Lấy logger đã khởi tạo từ init.go
+	Logger := initializers.GetLogger()
+	defer Logger.Sync() // Đảm bảo rằng các log sẽ được ghi lại
+
 	// khởi tạo mặt định Gin framework
 	r := gin.Default()
 
