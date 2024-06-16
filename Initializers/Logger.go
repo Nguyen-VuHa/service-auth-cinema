@@ -30,7 +30,6 @@ func InitLogger() {
 
 	// Tạo logger
 	Logger = zap.New(core)
-
 }
 
 func GetLogger() *zap.Logger {

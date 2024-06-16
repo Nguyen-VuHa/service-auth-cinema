@@ -1,1 +1,2 @@
-{"level":"error","ts":1718516144.4861102,"msg":"Function SignUpController()","Error Bind JSON":"invalid character '}' looking for beginning of object key string"}
+{"level":"error","ts":1718519242.6524413,"msg":"Function SignUpAccount() - AuthService","Error Find User By Email ":"null"}
+{"level":"error","ts":1718519251.6478255,"msg":"Function SignUpAccount() - AuthService","Error Find User By Email":"\"null\""}

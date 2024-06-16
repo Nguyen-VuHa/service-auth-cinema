@@ -1,7 +1,6 @@
 package auth_services
 
 import (
-	"fmt"
 	"net/http"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
@@ -32,7 +31,11 @@ func (repo *AuthService) SignUpAccount(dataRequest DTO.SignUp_Request) (DTO.Auth
 
 	if err == nil { // email tồn tại -> thông báo mã lỗi và trả về kết quả failed
 		// write log
-		fmt.Println(err)
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Error Find User By Email": errJSON,
+		}
+		helpers.WriteLogApp("Function SignUpAccount() - AuthService", objectLog, "ERROR")
 
 		// set dữ liệu cho errRespone
 		errResponse.Code = constants.CODE_INVALID_FIELD
@@ -53,7 +56,12 @@ func (repo *AuthService) SignUpAccount(dataRequest DTO.SignUp_Request) (DTO.Auth
 
 	if err != nil { // lỗi trong quá trình hash password ở function HashPasswordWithBcrypt
 		// write log
-		fmt.Println(err)
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Hash Password Failed": errJSON,
+		}
+		helpers.WriteLogApp("Function SignUpAccount() - AuthService", objectLog, "ERROR")
+
 		// set dữ liệu cho errRespone
 		errResponse.Code = constants.CODE_SERVER_INTERNAL_ERROR
 		errResponse.Status = constants.STATUS_SERVER_INTERNAL_ERROR
@@ -66,6 +74,24 @@ func (repo *AuthService) SignUpAccount(dataRequest DTO.SignUp_Request) (DTO.Auth
 
 	// 3. insert thông tin vào database tương ứng
 	err = repo.userRepository.CreateNewUser(dataRequest)
+
+	if err != nil {
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Storage failed ": errJSON,
+		}
+		helpers.WriteLogApp("Function SignUpAccount() - AuthService", objectLog, "ERROR")
+
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_SERVER_INTERNAL_ERROR
+		errResponse.Status = constants.STATUS_SERVER_INTERNAL_ERROR
+		errResponse.Message = "INTERNAL SERVER ERROR."
+
+		// set trạng thái trả lỗi HTTPStatus
+		httpStatus.HTTPStatus = http.StatusInternalServerError
+		return dataResponse, errResponse, httpStatus
+	}
 
 	// 4. trả về kết quả
 	errResponse.Code = constants.CODE_SUCCESS

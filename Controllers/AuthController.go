@@ -4,12 +4,11 @@ import (
 	"net/http"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
-	initializers "service-auth/Initializers"
+	helpers "service-auth/Helpers"
 	auth_services "service-auth/Services/AuthServices"
 	viewmodels "service-auth/ViewModels"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // Khai báo struct IntanceAuthController thông qua dependency injection (auth_services.AuthService)
@@ -29,9 +28,10 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&bodyRequest); err != nil { // bind data từ request sang bodyRequest
 		// write log
-		initializers.Logger.Error("Function SignUpController()",
-			zap.String("Error Bind JSON", err.Error()),
-		)
+		objectLog := map[string]interface{}{
+			"Error Bind JSON": err.Error(),
+		}
+		helpers.WriteLogApp("Function SignUpController() - AuthController", objectLog, "ERROR")
 
 		// set data ViewModel reponse to user
 		signUpResponse.Code = constants.CODE_BAD_REQUEST
