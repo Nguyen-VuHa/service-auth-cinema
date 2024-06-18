@@ -6,6 +6,7 @@ import (
 	initializers "service-auth/Initializers"
 	repositories "service-auth/Repositories"
 	auth_services "service-auth/Services/AuthServices"
+	validation_service "service-auth/Services/ValidationService"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,8 @@ func AuthRoutes(routes *gin.RouterGroup) {
 	var userDataLayer = user_data_layer.NewUserDataLayer(initializers.DB)
 	var userRepository = repositories.NewIntanceUserDataLayer(userDataLayer)
 	var authService = auth_services.NewAuthService(userRepository)
-	var authController = controllers.NewAuthController(authService)
+	var validationService = validation_service.NewAuthValidation()
+	var authController = controllers.NewAuthController(authService, validationService)
 
 	authGroup := routes.Group("/auth")
 	{
