@@ -9,8 +9,10 @@
     - DataLayers
     - DTO
     - Models
+    - Public
     - Repositories
     - Routers
+    - Services
     - ViewModels
     main.go
 ```
@@ -20,6 +22,7 @@
 <p>
 - Design Pattern: <br>
 + Repository Pattern
++ Stragy Pattern
 </p>
  
 
