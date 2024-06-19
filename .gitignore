@@ -7,3 +7,5 @@ service-auth.exe~
 *.pem
 /logs/*
 /logs
+
+*.log

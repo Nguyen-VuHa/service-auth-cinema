@@ -70,3 +70,18 @@ func (v Validate_IsLength) Validate(data string) error {
 
 	return nil
 }
+
+// Cấu trúc Validate_IsPhoneNumber (Only used VietNam)
+type Validate_IsPhoneNumber struct{}
+
+// Phương thức Validate cho Validate_IsPhoneNumber
+func (v Validate_IsPhoneNumber) Validate(data string) error {
+	// Biểu thức chính quy cho số điện thoại Việt Nam với các độ dài khác nhau
+	var re = regexp.MustCompile(`^(03|05|07|08|09)\d{8}$|^(01|02|04|06)\d{7,9}$`)
+
+	if !re.MatchString(data) {
+		return errors.New("the phone number invalid")
+	}
+
+	return nil
+}

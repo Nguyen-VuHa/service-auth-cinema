@@ -7,6 +7,7 @@ import (
 	helpers "service-auth/Helpers"
 	auth_services "service-auth/Services/AuthServices"
 	validation_service "service-auth/Services/ValidationService"
+	validations "service-auth/Validations"
 	viewmodels "service-auth/ViewModels"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,7 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 		objectLog := map[string]interface{}{
 			"Error Bind JSON": err.Error(),
 		}
+
 		helpers.WriteLogApp("Function SignUpController() - AuthController", objectLog, "ERROR")
 
 		// set data ViewModel reponse to user
@@ -47,18 +49,18 @@ func (service *AuthController) SignUpController(c *gin.Context) {
 		return
 	}
 
-	msgErr := service.validationService.Auth_IsEmail(bodyRequest.Email)
-	if msgErr != "" {
+	// gọi hàm Valid_Auth_SignUp() để kiểm tra dữ liệu trong Body Request
+	messageError := validations.Valid_Auth_SignUp(bodyRequest, service.validationService)
+
+	if messageError != "" {
 		// set data ViewModel reponse to user
 		signUpResponse.Code = constants.CODE_BAD_REQUEST
 		signUpResponse.Status = constants.STATUS_BAD_REQUEST
-		signUpResponse.Message = msgErr
+		signUpResponse.Message = messageError
 
 		c.JSON(http.StatusBadRequest, signUpResponse)
 		return
 	}
-
-	// Xác thực password
 
 	// 2.call service Auth execute function sign up
 	_, errResponse, httpS := service.authService.SignUpAccount(bodyRequest)
