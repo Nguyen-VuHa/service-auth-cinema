@@ -35,12 +35,12 @@
  
 
 ### Tính năng:
-[1. Đăng Nhập](#function-đăng-nhập)
-[2. Đăng ký](#function-đăng-ký)
-[3. Đăng nhập với Facebook]()
-[4. Đăng nhập với Google]()
-[5. Đổi mật khẩu]()
-[6. Xác thực tài khoản]()
+[1. Đăng Nhập](#function-đăng-nhập) <br>
+[2. Đăng ký](#function-đăng-ký) <br>
+[3. Đăng nhập với Facebook]() <br>
+[4. Đăng nhập với Google]() <br> 
+[5. Đổi mật khẩu]() <br>
+[6. Xác thực tài khoản]() <br>
 
 ## Function Đăng Nhập
 
