@@ -28,7 +28,7 @@ func NewAuthController(authService *auth_services.AuthService, validationService
 }
 
 func (service *AuthController) SignUpController(c *gin.Context) {
-	var signUpResponse viewmodels.SigUpViewModel //
+	var signUpResponse viewmodels.SigUpViewModel // Khởi tạo data response SigUpViewModel
 
 	var bodyRequest DTO.SignUp_Request // khởi tạo bodyRequest
 

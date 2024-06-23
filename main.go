@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+	"os"
+	constants "service-auth/Constants"
 	initializers "service-auth/Initializers"
 	routers "service-auth/Routers"
 
@@ -14,6 +16,17 @@ func init() {
 	initializers.ConnectDatabase()  // Connect với Database
 	initializers.MigrateDatabase()  // Khởi tạo database trong Models
 	initializers.InitLogger()       //  Khởi tạo logger cho service
+
+	// Kết nối Redis Client
+	// Lấy thông tin kết nối của Redis từ biến môi trường
+	var redisIPAddr = os.Getenv(constants.REDIS_ADDRESS)
+	var userName = os.Getenv(constants.REDIS_USERNAME)
+	var redisPassword = os.Getenv(constants.REDIS_USERNAME)
+
+	// Khởi tạo kết nối Redis cho RedisAuth với database 1
+	initializers.RedisAuth = initializers.InitRedis(redisIPAddr, userName, redisPassword, 01)
+	// Khởi tạo kết nối Redis cho RedisUser với database 2
+	initializers.RedisUser = initializers.InitRedis(redisIPAddr, userName, redisPassword, 02)
 }
 
 func main() {
