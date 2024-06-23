@@ -182,7 +182,7 @@ func (authValid *AuthValidation) Auth_IsFullName(data interface{}) string {
 
 // phương thức Auth_IsBirthDay -> kiểm tra ngày sinh hợp lệ dùng trong phần Auth
 func (authValid *AuthValidation) Auth_IsBirthDay(data interface{}) string {
-	birthDay, ok := data.(time.Time)
+	birthDay, ok := data.(string)
 
 	if !ok {
 		objectLog := map[string]interface{}{
@@ -192,9 +192,21 @@ func (authValid *AuthValidation) Auth_IsBirthDay(data interface{}) string {
 		helpers.WriteLogApp("Function Auth_IsEmail() - ValidationService", objectLog, "ERROR")
 		return "Dữ liệu không đúng định dạng"
 	}
+	// Chuyển từ string sang time.Time với định dạng YYYY-MM-DD
+
+	timeConvert, errConvert := helpers.StringToDate(birthDay)
+
+	if errConvert != nil {
+		objectLog := map[string]interface{}{
+			"Error Validation BirthDay": ok,
+		}
+
+		helpers.WriteLogApp("Function Auth_IsEmail() - ValidationService", objectLog, "ERROR")
+		return "Dữ liệu không đúng định dạng"
+	}
 
 	// Check if birthday is not in the future
-	if birthDay.After(time.Now()) {
+	if timeConvert.After(time.Now()) {
 		objectLog := map[string]interface{}{
 			"Error Validation BirthDay": "Birthday is invalid",
 		}
@@ -205,7 +217,7 @@ func (authValid *AuthValidation) Auth_IsBirthDay(data interface{}) string {
 	}
 
 	// Check if year of birthday is >= 1900
-	if birthDay.Year() < 1900 {
+	if timeConvert.Year() < 1900 {
 		objectLog := map[string]interface{}{
 			"Error Validation BirthDay": "Birthday is invalid",
 		}
