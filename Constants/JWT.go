@@ -1,0 +1,6 @@
+package constants
+
+const (
+	JWT_REFRESH_SECRET = "JWT_REFRESH_SECRET"
+	JWT_ACCESS_SECRET  = "JWT_ACCESS_SECRET"
+)

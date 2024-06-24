@@ -2,6 +2,7 @@ package auth_services
 
 import (
 	"net/http"
+	"os"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
@@ -97,6 +98,115 @@ func (repo *AuthService) SignUpAccount(dataRequest DTO.SignUp_Request) (DTO.Auth
 	errResponse.Code = constants.CODE_SUCCESS
 	errResponse.Status = constants.STATUS_SUCCESS
 	errResponse.Message = "Đăng ký thành công."
+
+	return dataResponse, errResponse, httpStatus
+}
+
+func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.AuthService_SignIn_Response, DTO.BaseReponseDTO, DTO.HTTPStatusDTO) {
+	var dataResponse DTO.AuthService_SignIn_Response // khởi tạo biến lưu giá trị trả về với stuct AuthService_SignIn_Response
+	var err error                                    // khai báo biến trả về lỗi khi thực thi function này
+	var errResponse DTO.BaseReponseDTO               // khai báo đối tượng trả về thông báo cho client khi thực thi function này
+	var httpStatus DTO.HTTPStatusDTO                 // khai báo đối tượng trả về mã lỗi http cho request
+
+	// Logic đăng nhập
+	// 1. Kiểm tra tồn tại của email
+	// Gọi function GetUserByEmail từ UserRepository
+	userDetail, err := repo.userRepository.GetUserByEmail(dataRequest.Email)
+
+	if err != nil { // email không tồn tại tồn tại -> thông báo mã lỗi và trả về kết quả failed
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Error Find User By Email": errJSON,
+		}
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_INVALID_FIELD
+		errResponse.Status = constants.STATUS_INVALID_FIELD
+		errResponse.Message = "Email hoặc mật khẩu không hợp lệ."
+
+		// set trạng thái trả lỗi HTTPStatus
+		httpStatus.HTTPStatus = http.StatusUnprocessableEntity
+		return dataResponse, errResponse, httpStatus
+	}
+
+	// 2. Confirm password input với pash hash trong lưu trữ.
+	errComparePassword := helpers.ComparePasswordByBcrypt(userDetail.Password, dataRequest.Password)
+
+	if errComparePassword != nil { // xác thực mật khẩu không hợp lệ. password wrong
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Error Compare Password ": errJSON,
+			"User Compare ":           userDetail.Email,
+		}
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_INVALID_FIELD
+		errResponse.Status = constants.STATUS_INVALID_FIELD
+		errResponse.Message = "Email hoặc mật khẩu không hợp lệ."
+		return dataResponse, errResponse, httpStatus
+	}
+
+	// 3. tạo token và thông tin user trả về cho người dùng
+	var tokenJWT DTO.JWTToken
+
+	tokenJWT.UserID = userDetail.UserID
+
+	// lấy secret key trong .env
+	accessKey := os.Getenv(constants.JWT_ACCESS_SECRET)
+	refreshKey := os.Getenv(constants.JWT_REFRESH_SECRET)
+
+	// divice + hash secret
+	accesSignKey := accessKey + dataRequest.Device
+	refreshSignKey := refreshKey + dataRequest.Device
+
+	var errGenerate error
+	accessToken, errGenerate := helpers.CreateAccessToken(tokenJWT, accesSignKey)
+
+	if errGenerate != nil { // create Token failed.
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(errGenerate)
+		objectLog := map[string]interface{}{
+			"Create Access Token Failed ": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_BAD_REQUEST
+		errResponse.Status = constants.STATUS_BAD_REQUEST
+		errResponse.Message = "NETWORK ERROR."
+		return dataResponse, errResponse, httpStatus
+	}
+
+	refreshToken, errGenerate := helpers.CreateRefreshToken(tokenJWT, refreshSignKey)
+
+	if errGenerate != nil { // create Token failed.
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(errGenerate)
+		objectLog := map[string]interface{}{
+			"Create Access Token Failed ": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_BAD_REQUEST
+		errResponse.Status = constants.STATUS_BAD_REQUEST
+		errResponse.Message = "NETWORK ERROR."
+		return dataResponse, errResponse, httpStatus
+	}
+
+	errResponse.Code = constants.CODE_SUCCESS
+	errResponse.Status = constants.STATUS_SUCCESS
+	errResponse.Message = "Xác thực tài khoản thành công."
+
+	dataResponse.UserID = userDetail.UserID
+	dataResponse.AccessToken = accessToken
+	dataResponse.RefreshToken = refreshToken
 
 	return dataResponse, errResponse, httpStatus
 }

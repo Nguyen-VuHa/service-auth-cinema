@@ -20,7 +20,7 @@ func AuthRoutes(routes *gin.RouterGroup) {
 
 	authGroup := routes.Group("/auth")
 	{
-		authGroup.POST("/sign-in")
+		authGroup.POST("/sign-in", authController.SignInCotroller)
 		authGroup.POST("/sign-up", authController.SignUpController)
 		authGroup.POST("/facebook")
 		authGroup.POST("/google")
