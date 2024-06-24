@@ -1,13 +1,20 @@
 package auth_services
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"os"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
+	initializers "service-auth/Initializers"
 	repositories "service-auth/Repositories"
+	"time"
 )
+
+// khởi tạo context background để run Redis
+var ctx = context.Background()
 
 // Khai báo struct AuthService thông qua dependency injection (repositories.UserRepository)
 type AuthService struct {
@@ -200,10 +207,88 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 		return dataResponse, errResponse, httpStatus
 	}
 
+	// lưu thông tin user lên Redis - lưu cache tránh gọi vào DB khi xác thực token
+	userKey := fmt.Sprint(userDetail.UserID) // Tạo key với định danh người dùng
+	userFields := map[string]interface{}{
+		"user_id":     fmt.Sprint(userDetail.UserID),
+		"email":       userDetail.Email,
+		"user_status": fmt.Sprint(userDetail.UserStatus),
+		"user_type":   fmt.Sprint(userDetail.UserType),
+	}
+
+	errSaveRedis := initializers.RedisUser.HMSet(ctx, userKey, userFields).Err()
+
+	if errSaveRedis != nil {
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(errSaveRedis)
+		objectLog := map[string]interface{}{
+			"Save data user on Redis failed": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+	}
+
+	ttl := time.Hour // Thời gian cache là 1 tiếng
+	err = initializers.RedisUser.Expire(ctx, userKey, ttl).Err()
+
+	if err != nil {
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Could not set TTL": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+	}
+
+	// Lấy khóa bí mật từ biến môi trường
+	hashSecretKey := os.Getenv(constants.DEVICE_SECRET_KEY)
+
+	// Tạo chuỗi để băm bằng cách kết hợp UserID, Device và khóa bí mật
+	passHASH := fmt.Sprint(userDetail.UserID) + dataRequest.Device + hashSecretKey
+
+	// Tạo HMAC hash từ chuỗi đã tạo và UserID
+	// Sử dụng hàm GenerateHMAC để tạo HMAC
+	authKey := helpers.GenerateHMAC(passHASH, fmt.Sprint(userDetail.UserID))
+
+	deviceFields := map[string]interface{}{
+		"device":        dataRequest.Device,
+		"ip_address":    dataRequest.IPAddress,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}
+
+	err = initializers.RedisAuth.HMSet(ctx, authKey, deviceFields).Err()
+
+	if err != nil {
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Save data token on Redis failed": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+	}
+
+	ttlToken := time.Hour * 24 * 30 // Thời gian cache là 30 ngày = thời gian hết hạn refresh token
+	err = initializers.RedisAuth.Expire(ctx, authKey, ttlToken).Err()
+
+	if err != nil {
+		// write log
+		errJSON, _ := helpers.JSON_Stringify(err)
+		objectLog := map[string]interface{}{
+			"Could not set TTL": errJSON,
+		}
+
+		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+	}
+
+	// set trạng thái baseResponse
 	errResponse.Code = constants.CODE_SUCCESS
 	errResponse.Status = constants.STATUS_SUCCESS
 	errResponse.Message = "Xác thực tài khoản thành công."
 
+	// set thông tin cần thiết cho xác thực FE
 	dataResponse.UserID = userDetail.UserID
 	dataResponse.AccessToken = accessToken
 	dataResponse.RefreshToken = refreshToken
