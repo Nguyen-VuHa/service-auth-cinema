@@ -157,6 +157,9 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 		return dataResponse, errResponse, httpStatus
 	}
 
+	// Kiểm tra tài khoản nếu chưa xác thực gửi OTP xác thực
+	// Call đến API đến service Mail
+
 	// 3. tạo token và thông tin user trả về cho người dùng
 	var tokenJWT DTO.JWTToken
 
@@ -258,6 +261,7 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 		"refresh_token": refreshToken,
 	}
 
+	// lưu trữ token lên Redis sử dụng xác thực request của ng dùng trong middleware
 	err = initializers.RedisAuth.HMSet(ctx, authKey, deviceFields).Err()
 
 	if err != nil {
