@@ -1,16 +1,20 @@
 package controllers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
+	initializers "service-auth/Initializers"
 	auth_services "service-auth/Services/AuthServices"
 	validation_service "service-auth/Services/ValidationService"
 	validations "service-auth/Validations"
 	viewmodels "service-auth/ViewModels"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
 )
 
 // Khai báo struct IntanceAuthController thông qua dependency injection (auth_services.AuthService)
@@ -121,4 +125,71 @@ func (service *AuthController) SignInCotroller(c *gin.Context) {
 	signInResponse.Data = data
 
 	c.JSON(httpS.HTTPStatus, signInResponse)
+}
+
+func (service *AuthController) SignInWithFacebookCotroller(c *gin.Context) {
+	var facebookResponse viewmodels.SignInFacebookViewModel // Khởi tạo data response SigInViewModel
+
+	var bodyRequest DTO.SignInFacebook_Request // khởi tạo bodyRequest
+
+	if err := c.ShouldBindJSON(&bodyRequest); err != nil { // bind data từ request sang bodyRequest
+		// write log
+		objectLog := map[string]interface{}{
+			"Error Bind JSON": err.Error(),
+		}
+
+		helpers.WriteLogApp("Function SignInCotroller() - AuthController", objectLog, "ERROR")
+
+		// set data ViewModel reponse to user
+		facebookResponse.Code = constants.CODE_BAD_REQUEST
+		facebookResponse.Status = constants.STATUS_BAD_REQUEST
+		facebookResponse.Message = "Invalid JSON format."
+
+		c.JSON(http.StatusBadRequest, facebookResponse)
+		return
+	}
+
+	data, baseResponse, _ := service.authService.SignUpWithFacebook(bodyRequest)
+
+	// Set Response trả về
+	facebookResponse.BaseReponseDTO = baseResponse
+	facebookResponse.Data = data
+
+	// c.JSON(httpS.HTTPStatus, facebookResponse.Data.URL)
+	c.JSON(http.StatusOK, facebookResponse.Data.URL)
+}
+
+func (service *AuthController) CallBackWithFacebookCotroller(c *gin.Context) {
+	code := c.Query("code")
+
+	fmt.Println(code)
+
+	token, err := initializers.FacebookConfig.Exchange(oauth2.NoContext, code)
+	if err != nil {
+		// http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Println(token)
+
+	client := initializers.FacebookConfig.Client(oauth2.NoContext, token)
+	response, err := client.Get("https://graph.facebook.com/me?fields=id,name,email")
+	if err != nil {
+		// http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer response.Body.Close()
+
+	var user struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&user); err != nil {
+		// http.Error(w, "Failed to decode user info: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("User Info: %s\n", user)
 }

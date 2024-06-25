@@ -30,3 +30,13 @@ type AuthService_SignIn_Response struct {
 	AccessToken  string    `json:"acc_k"`
 	RefreshToken string    `json:"ref_k"`
 }
+
+// Type request sign up with facebook
+type SignInFacebook_Request struct {
+	AuthToken string `json:"auth_token"`
+}
+
+// Type request sign up with facebook
+type AuthService_SignInFacebook_Response struct {
+	URL string `json:"url"`
+}

@@ -22,12 +22,12 @@ func AuthRoutes(routes *gin.RouterGroup) {
 	{
 		authGroup.POST("/sign-in", authController.SignInCotroller)
 		authGroup.POST("/sign-up", authController.SignUpController)
-		authGroup.POST("/facebook")
+		authGroup.POST("/facebook", authController.SignInWithFacebookCotroller)
 		authGroup.POST("/google")
 
 		authCallBackGroup := authGroup.Group("/callback")
 		{
-			authCallBackGroup.GET("/facebook")
+			authCallBackGroup.GET("/facebook", authController.CallBackWithFacebookCotroller)
 			authCallBackGroup.GET("/google")
 		}
 	}

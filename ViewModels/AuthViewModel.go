@@ -13,3 +13,9 @@ type SignInViewModel struct {
 	DTO.BaseReponseDTO
 	Data DTO.AuthService_SignIn_Response `json:"data"`
 }
+
+// type response đăng nhập tài khoản
+type SignInFacebookViewModel struct {
+	DTO.BaseReponseDTO
+	Data DTO.AuthService_SignInFacebook_Response `json:"data"`
+}

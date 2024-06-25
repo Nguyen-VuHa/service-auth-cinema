@@ -1,7 +1,6 @@
 package auth_services
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,22 +8,8 @@ import (
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
 	initializers "service-auth/Initializers"
-	repositories "service-auth/Repositories"
 	"time"
 )
-
-// khởi tạo context background để run Redis
-var ctx = context.Background()
-
-// Khai báo struct AuthService thông qua dependency injection (repositories.UserRepository)
-type AuthService struct {
-	userRepository repositories.UserRepository
-}
-
-// khởi tạo intance NewAuthService định nghĩa struct AuthService
-func NewAuthService(userRepository repositories.UserRepository) *AuthService {
-	return &AuthService{userRepository}
-}
 
 func (repo *AuthService) SignUpAccount(dataRequest DTO.SignUp_Request) (DTO.AuthService_SignUp_Response, DTO.BaseReponseDTO, DTO.HTTPStatusDTO) {
 	var dataResponse DTO.AuthService_SignUp_Response // khởi tạo biến lưu giá trị trả về với stuct AuthService_SignUp_Response
