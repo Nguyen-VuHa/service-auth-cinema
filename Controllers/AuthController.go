@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"os"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
@@ -160,9 +160,18 @@ func (service *AuthController) SignInWithFacebookCotroller(c *gin.Context) {
 }
 
 func (service *AuthController) CallBackWithFacebookCotroller(c *gin.Context) {
-	code := c.Query("code")
+	var facebookResponse viewmodels.CallBackFacebookViewModel
 
-	fmt.Println(code)
+	code := c.Query("code")
+	state := c.Query("state")
+
+	signKeyFacebook := os.Getenv(constants.FACEBOOK_SIGN_KEY)
+
+	// state không hợp lệ ~ request đáng nghi
+	if signKeyFacebook != state {
+		// http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	token, err := initializers.FacebookConfig.Exchange(oauth2.NoContext, code)
 	if err != nil {
@@ -170,26 +179,32 @@ func (service *AuthController) CallBackWithFacebookCotroller(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(token)
-
 	client := initializers.FacebookConfig.Client(oauth2.NoContext, token)
 	response, err := client.Get("https://graph.facebook.com/me?fields=id,name,email")
 	if err != nil {
 		// http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	defer response.Body.Close()
 
-	var user struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		Email string `json:"email"`
-	}
+	var user DTO.Callback_SignIn_Facebook
 
 	if err := json.NewDecoder(response.Body).Decode(&user); err != nil {
 		// http.Error(w, "Failed to decode user info: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Printf("User Info: %s\n", user)
+	user.AccessToken = token.AccessToken
+	user.TokenType = token.TokenType
+	user.Expiry = token.Expiry
+
+	data, baseResponse, httpS := service.authService.CallbackSignUpWithFacebook(user)
+
+	// Set Response trả về
+	facebookResponse.BaseReponseDTO = baseResponse
+	facebookResponse.Data = data
+
+	// c.JSON(httpS.HTTPStatus, facebookResponse.Data.URL)
+	c.JSON(httpS.HTTPStatus, facebookResponse)
 }

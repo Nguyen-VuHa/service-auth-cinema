@@ -14,6 +14,7 @@ type UserRepository interface {
 
 	// Function Edit Access Database
 	CreateNewUser(userDataRequest DTO.SignUp_Request) error
+	CreateUserLoginFacebook(userDataRequest DTO.Callback_SignIn_Facebook) error
 
 	// Function Logic
 }
@@ -56,10 +57,9 @@ func (intance *IntanceUserDataLayer) CreateNewUser(userDataRequest DTO.SignUp_Re
 	userData.Password = userDataRequest.Password
 	// thêm một số trường với rule khi tạo mới tài khoản
 	userData.UserStatus = constants.USER_STATUS_PENDING
-	userData.UserType = constants.USER_TYPE_NORMAL
+	userData.LoginMethodID = constants.LOGIN_NORMAL_ID
 
 	var actionCreateUser user_data_layer.CreateUserExecute
-
 	actionCreateUser.Data = &userData
 
 	var userCreateNew *models.User // khai báo biến lưu trữ record khi tạo mới user.
@@ -89,6 +89,68 @@ func (intance *IntanceUserDataLayer) CreateNewUser(userDataRequest DTO.SignUp_Re
 		if err != nil {
 			return err
 		}
+	}
+
+	// trả về lỗi (nếu có)
+	return err
+}
+
+func (intance *IntanceUserDataLayer) CreateUserLoginFacebook(userDataRequest DTO.Callback_SignIn_Facebook) error {
+	var err error            // Khai báo biến để chứa lỗi trong quá trình thực thi
+	var userData models.User // Khai báo biến để chứa thông tin người dùng ghi được
+
+	// set userData từ userDataRequest
+	userData.Email = userDataRequest.ID + "@facebook.com"
+	// thêm một số trường với rule khi tạo mới tài khoản
+	userData.UserStatus = constants.USER_STATUS_PENDING
+	userData.LoginMethodID = constants.LOGIN_GOOGLE_ID
+
+	var actionCreateUser user_data_layer.CreateUserExecute
+	actionCreateUser.Data = &userData
+
+	var userCreateNew *models.User // khai báo biến lưu trữ record khi tạo mới user.
+	userCreateNew, err = intance.userData.UserExecute(&actionCreateUser)
+
+	// khởi tạo mảng dữ liệu key value -> userProfile
+	var dataUserProfile = make(map[string]interface{})
+
+	dataUserProfile[constants.USER_PROFILE_FULLNAME] = userDataRequest.Name
+
+	var profileKeys = []string{constants.USER_PROFILE_FULLNAME}
+
+	// insert thông tin vào user profile với các field còn lại
+	for _, key := range profileKeys { // 1 số biến object cần lưu vào user profile (FullName)
+		var userProfileData models.UserProfile // Khai báo biến để chứa thông tin detail user hợp lệ
+		userProfileData.ProfileKey = key
+		userProfileData.ProfileValue = dataUserProfile[key].(string)
+		userProfileData.UserID = userCreateNew.UserID // Gán UserID khoá ngoại trong UserProfile
+
+		// Khai báo struct CreateUserProfileExecute trong UserProfileExecute
+		var actionCreateUserProfile user_data_layer.CreateUserProfileExecute
+		actionCreateUserProfile.Data = &userProfileData // set Data với tham trị userProfileData
+
+		_, err = intance.userData.UserProfileExecute(&actionCreateUserProfile)
+		if err != nil {
+			return err
+		}
+	}
+
+	// insert thông tin vào auth third party
+	var authThirdParty models.AuthThirdParty
+
+	authThirdParty.AccessToken = userDataRequest.AccessToken
+	authThirdParty.ProviderID = userDataRequest.ID
+	authThirdParty.Provider = "Facebook"
+	authThirdParty.ExpiredTime = userDataRequest.Expiry
+	authThirdParty.UserID = userCreateNew.UserID
+
+	// Khai báo struct actionCreateAuthThirdParty trong CreateAuthThirdParty
+	var actionCreateAuthThirdParty user_data_layer.CreateAuthThirdPartyExecute
+	actionCreateAuthThirdParty.Data = &authThirdParty // set Data với tham trị authThirdParty
+
+	_, err = intance.userData.AuthThirdPartyExecute(&actionCreateAuthThirdParty)
+	if err != nil {
+		return err
 	}
 
 	// trả về lỗi (nếu có)

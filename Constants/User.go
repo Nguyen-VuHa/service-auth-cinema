@@ -10,8 +10,9 @@ const (
 
 // const user type account
 const (
-	USER_TYPE_NORMAL  = "normal"  // trạng thái đăng ký trực tiếp trên website hệ thống
-	USER_TYPE_ANOTHER = "another" // trạng thái đăng ký ở các platform khác
+	LOGIN_NORMAL_ID   = 1 // "normal" trạng thái đăng nhập hoặc đăng ký trực tiếp trên website hệ thống
+	LOGIN_FACEBOOK_ID = 2 // "facebook" trạng thái đăng nhập ở các facebook
+	LOGIN_GOOGLE_ID   = 3 // "google" trạng thái đăng nhập ở các google
 )
 
 // const key value trong bảng userProfile

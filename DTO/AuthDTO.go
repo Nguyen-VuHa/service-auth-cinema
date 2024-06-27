@@ -1,6 +1,10 @@
 package DTO
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // Type request sign up account
 type SignUp_Request struct {
@@ -39,4 +43,19 @@ type SignInFacebook_Request struct {
 // Type request sign up with facebook
 type AuthService_SignInFacebook_Response struct {
 	URL string `json:"url"`
+}
+
+type Callback_SignIn_Facebook struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	AccessToken string    `json:"access_token"`
+	TokenType   string    `json:"token_type"`
+	Expiry      time.Time `json:"expiry"`
+}
+
+// Type request sign up account
+type AuthService_Callback_Facebook_Response struct {
+	UserID      uuid.UUID `json:"u_id"`
+	AccessToken string    `json:"acc_k"`
 }

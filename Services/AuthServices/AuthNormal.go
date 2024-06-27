@@ -198,10 +198,10 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 	// lưu thông tin user lên Redis - lưu cache tránh gọi vào DB khi xác thực token
 	userKey := fmt.Sprint(userDetail.UserID) // Tạo key với định danh người dùng
 	userFields := map[string]interface{}{
-		"user_id":     fmt.Sprint(userDetail.UserID),
-		"email":       userDetail.Email,
-		"user_status": fmt.Sprint(userDetail.UserStatus),
-		"user_type":   fmt.Sprint(userDetail.UserType),
+		"user_id":      fmt.Sprint(userDetail.UserID),
+		"email":        userDetail.Email,
+		"user_status":  fmt.Sprint(userDetail.UserStatus),
+		"login_method": fmt.Sprint(userDetail.LoginMethodID),
 	}
 
 	errSaveRedis := initializers.RedisUser.HMSet(ctx, userKey, userFields).Err()

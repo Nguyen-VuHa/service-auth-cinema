@@ -8,7 +8,6 @@ import (
 )
 
 type UserStatus string
-type UserType string
 
 var (
 	Pending UserStatus = constants.USER_STATUS_PENDING
@@ -17,22 +16,24 @@ var (
 	Blocked UserStatus = constants.USER_STATUS_BLOCKED
 )
 
-var (
-	Normal  UserType = constants.USER_TYPE_NORMAL
-	Another UserType = constants.USER_TYPE_ANOTHER
-)
-
 type User struct {
 	UserID         uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Email          string    `gorm:"uniqueIndex;type:varchar(100)"`
 	Password       string    `gorm:"type:varchar(250)"`
 	UserStatus     UserStatus
-	UserType       UserType
 	CreatedAt      time.Time `gorm:"default:current_timestamp"`
 	UpdatedAt      time.Time
+	LoginMethodID  uint
+	LoginMethod    LoginMethod
 	Profiles       []UserProfile
 	AuthThirdParty []AuthThirdParty
 	Sessions       []UserSession
+}
+
+type LoginMethod struct {
+	LoginMethodID uint   `gorm:"primaryKey;autoIncrement"`
+	LoginMethod   string `gorm:"type:varchar(30)"`
+	Users         []User
 }
 
 type UserProfile struct {

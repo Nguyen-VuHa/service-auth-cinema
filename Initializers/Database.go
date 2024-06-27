@@ -25,5 +25,5 @@ func ConnectDatabase() {
 
 func MigrateDatabase() {
 	// migrate user
-	DB.AutoMigrate(&models.User{}, &models.UserProfile{}, &models.UserSession{}, &models.AuthThirdParty{})
+	DB.AutoMigrate(&models.User{}, &models.LoginMethod{}, &models.UserProfile{}, &models.UserSession{}, &models.AuthThirdParty{})
 }
