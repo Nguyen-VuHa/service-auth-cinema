@@ -38,30 +38,10 @@ func (repo *AuthService) CallbackSignUpWithFacebook(dataCallback DTO.Callback_Si
 	// Logic đăng nhập với facebook
 	// 1. Kiểm tra tồn tại của email
 	// Gọi function GetUserByEmail từ UserRepository
-	_, err = repo.userRepository.GetUserByEmail(dataCallback.ID + "@facebook.com")
+	userFacebook, err := repo.userRepository.GetUserByEmail(dataCallback.ID + "@facebook.com")
 
-	// tạm thời chưa xử lý lưu lại tính tiếp
-	if err == nil { // email tồn tại -> kiểm tra token còn hạng không nếu không bắt đăng nhập lại.
-		// Xử lý xác thực hoặc trả về lỗi.
-		// 	// write log
-		// 	errJSON, _ := helpers.JSON_Stringify(err)
-		// 	objectLog := map[string]interface{}{
-		// 		"Error Find User By Email": errJSON,
-		// 	}
-		// 	helpers.WriteLogApp("Function SignUpAccount() - AuthService", objectLog, "ERROR")
-
-		// 	// set dữ liệu cho errRespone
-		// 	baseResponse.Code = constants.CODE_INVALID_FIELD
-		// 	baseResponse.Status = constants.STATUS_INVALID_FIELD
-		// 	baseResponse.Message = "Email đăng ký đã tồn tại."
-
-		// 	// set trạng thái trả lỗi HTTPStatus
-		// 	httpStatus.HTTPStatus = http.StatusUnprocessableEntity
-
-		// 	return dataResponse, baseResponse, httpStatus
-	} else {
-		// nếu chưa tồn tại -> insert vào database
-
+	// nếu chưa tồn tại -> insert vào database
+	if err != nil {
 		// 3. insert thông tin vào database tương ứng
 		err = repo.userRepository.CreateUserLoginFacebook(dataCallback)
 
@@ -73,7 +53,7 @@ func (repo *AuthService) CallbackSignUpWithFacebook(dataCallback DTO.Callback_Si
 			}
 			helpers.WriteLogApp("Function CallbackSignUpWithFacebook() - AuthService", objectLog, "ERROR")
 
-			// set dữ liệu cho errRespone
+			// set dữ liệu cho baseResponse
 			baseResponse.Code = constants.CODE_SERVER_INTERNAL_ERROR
 			baseResponse.Status = constants.STATUS_SERVER_INTERNAL_ERROR
 			baseResponse.Message = "INTERNAL SERVER ERROR."
@@ -82,7 +62,20 @@ func (repo *AuthService) CallbackSignUpWithFacebook(dataCallback DTO.Callback_Si
 			httpStatus.HTTPStatus = http.StatusInternalServerError
 			return dataResponse, baseResponse, httpStatus
 		}
+	} else {
 
+		// set dữ liệu cho baseResponse
+		baseResponse.Code = constants.CODE_SUCCESS
+		baseResponse.Status = constants.STATUS_SUCCESS
+		baseResponse.Message = "Đăng nhập thành công."
+
+		// set trạng thái trả lỗi HTTPStatus
+		httpStatus.HTTPStatus = http.StatusOK
+
+		// set data token user
+		dataResponse.AccessToken = dataCallback.AccessToken
+		dataResponse.UserID = userFacebook.UserID
+		dataResponse.Method = userFacebook.LoginMethodID
 	}
 
 	return dataResponse, baseResponse, httpStatus

@@ -58,4 +58,5 @@ type Callback_SignIn_Facebook struct {
 type AuthService_Callback_Facebook_Response struct {
 	UserID      uuid.UUID `json:"u_id"`
 	AccessToken string    `json:"acc_k"`
+	Method      uint      `json:"method"`
 }
