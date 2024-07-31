@@ -9,6 +9,7 @@ import (
 
 var RedisAuth *redis.Client // Khai báo biến global cho Redis client liên quan đến xác thực
 var RedisUser *redis.Client // Khai báo biến global cho Redis client liên quan đến người dùng
+var RedisMail *redis.Client // Khai báo biến global cho Redis client liên quan đến service mail
 
 // Hàm khởi tạo kết nối tới Redis
 func InitRedis(addr, userName, password string, db int) *redis.Client {

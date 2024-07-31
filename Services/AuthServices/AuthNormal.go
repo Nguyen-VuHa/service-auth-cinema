@@ -2,12 +2,14 @@ package auth_services
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	constants "service-auth/Constants"
 	"service-auth/DTO"
 	helpers "service-auth/Helpers"
 	initializers "service-auth/Initializers"
+	otp_services "service-auth/Services/OTPServices"
 	"time"
 )
 
@@ -123,6 +125,17 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 		return dataResponse, errResponse, httpStatus
 	}
 
+	if userDetail.UserStatus == constants.USER_STATUS_BLOCKED || userDetail.UserStatus == constants.USER_STATUS_HIDDEN {
+		// set dữ liệu cho errRespone
+		errResponse.Code = constants.CODE_INVALID_FIELD
+		errResponse.Status = constants.STATUS_INVALID_FIELD
+		errResponse.Message = "Tài khoản của bạn đã bị khoá."
+
+		// set trạng thái trả lỗi HTTPStatus
+		httpStatus.HTTPStatus = http.StatusUnprocessableEntity
+		return dataResponse, errResponse, httpStatus
+	}
+
 	// 2. Confirm password input với pash hash trong lưu trữ.
 	errComparePassword := helpers.ComparePasswordByBcrypt(userDetail.Password, dataRequest.Password)
 
@@ -143,60 +156,107 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 	}
 
 	// Kiểm tra tài khoản nếu chưa xác thực gửi OTP xác thực
-	// Call đến API đến service Mail
+	if userDetail.UserStatus == constants.USER_STATUS_PENDING { // trạng thái pending là chưa xác thực
+		secretHash := userDetail.Email + dataRequest.Device + dataRequest.IPAddress
 
-	// 3. tạo token và thông tin user trả về cho người dùng
-	var tokenJWT DTO.JWTToken
+		secretSendOTP := helpers.GenerateHMAC(secretHash, userDetail.Email)
+		// tìm trên Redis có chưa để gửi OTP
+		values, errFindReids := initializers.RedisMail.HMGet(ctx, secretSendOTP, "totalOTP", "authOTP").Result()
 
-	tokenJWT.UserID = userDetail.UserID
-
-	// lấy secret key trong .env
-	accessKey := os.Getenv(constants.JWT_ACCESS_SECRET)
-	refreshKey := os.Getenv(constants.JWT_REFRESH_SECRET)
-
-	// divice + hash secret
-	accesSignKey := accessKey + dataRequest.Device
-	refreshSignKey := refreshKey + dataRequest.Device
-
-	var errGenerate error
-	accessToken, errGenerate := helpers.CreateAccessToken(tokenJWT, accesSignKey)
-
-	if errGenerate != nil { // create Token failed.
-		// write log
-		errJSON, _ := helpers.JSON_Stringify(errGenerate)
-		objectLog := map[string]interface{}{
-			"Create Access Token Failed ": errJSON,
+		if errFindReids != nil {
+			log.Fatalf("Could not get hash fields: %v", err)
 		}
 
-		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+		for i, v := range values {
+			fmt.Printf("Field %d: %s\n", i+1, v)
+		}
 
-		// set dữ liệu cho errRespone
-		errResponse.Code = constants.CODE_BAD_REQUEST
-		errResponse.Status = constants.STATUS_BAD_REQUEST
-		errResponse.Message = "NETWORK ERROR."
-		return dataResponse, errResponse, httpStatus
+		// generate OTP
+		otpService := otp_services.NewOTPService()
+
+		otpCode, secretAuth, err := otpService.GenerationOTP(secretSendOTP)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// Đặt các giá trị vào hash
+		err = initializers.RedisMail.HMSet(ctx, secretSendOTP, map[string]interface{}{
+			"totalOTP": 1,
+			"authOTP":  secretAuth,
+		}).Err()
+
+		if err != nil {
+			log.Fatalf("Could not set hash fields: %v", err)
+		}
+
+		fmt.Println(otpCode, secretAuth)
+		// Call đến API đến service Mail
+
+		// verifyOTP := otpService.AuthorizationOTP(otpCode, secretAuth)
+
+		// fmt.Println(verifyOTP)
 	}
 
-	refreshToken, errGenerate := helpers.CreateRefreshToken(tokenJWT, refreshSignKey)
+	var errGenerate error
+	var accessToken string
+	var refreshToken string
 
-	if errGenerate != nil { // create Token failed.
-		// write log
-		errJSON, _ := helpers.JSON_Stringify(errGenerate)
-		objectLog := map[string]interface{}{
-			"Create Access Token Failed ": errJSON,
+	// trạng thái active thì mới cấp token cho user sử dụng
+	if userDetail.UserStatus == constants.USER_STATUS_ACTIVE {
+		// 3. tạo token và thông tin user trả về cho người dùng
+		var tokenJWT DTO.JWTToken
+
+		tokenJWT.UserID = userDetail.UserID
+
+		// lấy secret key trong .env
+		accessKey := os.Getenv(constants.JWT_ACCESS_SECRET)
+		refreshKey := os.Getenv(constants.JWT_REFRESH_SECRET)
+
+		// divice + hash secret
+		accesSignKey := accessKey + dataRequest.Device
+		refreshSignKey := refreshKey + dataRequest.Device
+
+		accessToken, errGenerate = helpers.CreateAccessToken(tokenJWT, accesSignKey)
+
+		if errGenerate != nil { // create Token failed.
+			// write log
+			errJSON, _ := helpers.JSON_Stringify(errGenerate)
+			objectLog := map[string]interface{}{
+				"Create Access Token Failed ": errJSON,
+			}
+
+			helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+			// set dữ liệu cho errRespone
+			errResponse.Code = constants.CODE_BAD_REQUEST
+			errResponse.Status = constants.STATUS_BAD_REQUEST
+			errResponse.Message = "NETWORK ERROR."
+			return dataResponse, errResponse, httpStatus
 		}
 
-		helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+		refreshToken, errGenerate = helpers.CreateRefreshToken(tokenJWT, refreshSignKey)
 
-		// set dữ liệu cho errRespone
-		errResponse.Code = constants.CODE_BAD_REQUEST
-		errResponse.Status = constants.STATUS_BAD_REQUEST
-		errResponse.Message = "NETWORK ERROR."
-		return dataResponse, errResponse, httpStatus
+		if errGenerate != nil { // create Token failed.
+			// write log
+			errJSON, _ := helpers.JSON_Stringify(errGenerate)
+			objectLog := map[string]interface{}{
+				"Create Access Token Failed ": errJSON,
+			}
+
+			helpers.WriteLogApp("Function SignInAccount() - AuthService", objectLog, "ERROR")
+
+			// set dữ liệu cho errRespone
+			errResponse.Code = constants.CODE_BAD_REQUEST
+			errResponse.Status = constants.STATUS_BAD_REQUEST
+			errResponse.Message = "NETWORK ERROR."
+			return dataResponse, errResponse, httpStatus
+		}
 	}
 
 	// lưu thông tin user lên Redis - lưu cache tránh gọi vào DB khi xác thực token
 	userKey := fmt.Sprint(userDetail.UserID) // Tạo key với định danh người dùng
+
 	userFields := map[string]interface{}{
 		"user_id":      fmt.Sprint(userDetail.UserID),
 		"email":        userDetail.Email,
@@ -204,6 +264,7 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 		"login_method": fmt.Sprint(userDetail.LoginMethodID),
 	}
 
+	// save on redis
 	errSaveRedis := initializers.RedisUser.HMSet(ctx, userKey, userFields).Err()
 
 	if errSaveRedis != nil {
@@ -275,7 +336,7 @@ func (repo *AuthService) SignInAccount(dataRequest DTO.SignIn_Request) (DTO.Auth
 	// set trạng thái baseResponse
 	errResponse.Code = constants.CODE_SUCCESS
 	errResponse.Status = constants.STATUS_SUCCESS
-	errResponse.Message = "Xác thực tài khoản thành công."
+	errResponse.Message = "Đăng nập thành công."
 
 	// set thông tin cần thiết cho xác thực FE
 	dataResponse.UserID = userDetail.UserID

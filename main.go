@@ -28,6 +28,8 @@ func init() {
 	initializers.RedisAuth = initializers.InitRedis(redisIPAddr, userName, redisPassword, 01)
 	// Khởi tạo kết nối Redis cho RedisUser với database 2
 	initializers.RedisUser = initializers.InitRedis(redisIPAddr, userName, redisPassword, 02)
+	// Khởi tạo kết nối Redis cho RedisMail với database 3
+	initializers.RedisMail = initializers.InitRedis(redisIPAddr, userName, redisPassword, 03)
 }
 
 func main() {
