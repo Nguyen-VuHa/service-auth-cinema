@@ -1,7 +1,7 @@
 package models
 
 import (
-	constants "service-auth/Constants"
+	"auth-service/constants"
 	"time"
 
 	"github.com/google/uuid"

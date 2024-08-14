@@ -1,8 +1,8 @@
 *.env
 go.sum
 
-service-auth.exe
-service-auth.exe~
+auth-service.exe
+auth-service.exe~
 
 *.pem
 /logs/*
