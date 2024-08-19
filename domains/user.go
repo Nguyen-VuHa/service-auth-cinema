@@ -9,3 +9,7 @@ type UserRepository interface {
 	GetByEmail(email string) (models.User, error)
 	GetByID(id string) (models.User, error)
 }
+
+type UserProfileRepository interface {
+	Create(userProfile *models.UserProfile) error
+}

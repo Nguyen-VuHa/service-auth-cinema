@@ -11,9 +11,10 @@ import (
 
 func NewSignUpRouter(group *gin.RouterGroup) {
 	useRepo := repository.NewUserRepository(bootstrap.DB)
+	userProfileRepo := repository.NewUserProfileRepository(bootstrap.DB)
 	validateRepo := repository.NewValidation()
 
-	SignUpUseCase := usecases.NewSignupUsecase(useRepo, validateRepo)
+	SignUpUseCase := usecases.NewSignUpUsecase(useRepo, validateRepo, userProfileRepo)
 	sc := controllers.SignupController{
 		SignUpUseCase: SignUpUseCase,
 	}

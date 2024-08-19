@@ -21,6 +21,7 @@ type DataSignUpResponse struct {
 
 type SignUpUsecase interface {
 	ValidateDataRequest(signUpRequest SignUpRequest) error
-	Create(user *models.User) error
 	GetUserByEmail(email string) (models.User, error)
+	CreateUser(user *models.User) error
+	CreateUserProfile(userProfile *models.UserProfile) error
 }
