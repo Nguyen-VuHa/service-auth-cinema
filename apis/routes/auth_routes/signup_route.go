@@ -14,9 +14,9 @@ func NewSignUpRouter(group *gin.RouterGroup) {
 	userProfileRepo := repository.NewUserProfileRepository(bootstrap.DB)
 	validateRepo := repository.NewValidation()
 
-	SignUpUseCase := usecases.NewSignUpUsecase(useRepo, validateRepo, userProfileRepo)
+	signUpUseCase := usecases.NewSignUpUsecase(useRepo, validateRepo, userProfileRepo)
 	sc := controllers.SignupController{
-		SignUpUseCase: SignUpUseCase,
+		SignUpUseCase: signUpUseCase,
 	}
 
 	group.POST("/sign-up", sc.SignUp)

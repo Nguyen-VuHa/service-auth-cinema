@@ -3,7 +3,9 @@ package main
 import (
 	"auth-service/apis/routes"
 	"auth-service/bootstrap"
+	"auth-service/constants"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,6 +17,17 @@ func init() {
 	bootstrap.MigrateDatabase()    // Khởi tạo database trong Models
 	bootstrap.InitLogger()         //  Khởi tạo logger cho service
 	bootstrap.ConfigFacebookAuth() //  Khởi tạo xác thực facebook cho service
+
+	// Kết nối Redis Client
+	// Lấy thông tin kết nối của Redis từ biến môi trường
+	var redisIPAddr = os.Getenv(constants.REDIS_ADDRESS)
+	var userName = os.Getenv(constants.REDIS_USERNAME)
+	var redisPassword = os.Getenv(constants.REDIS_USERNAME)
+
+	// Khởi tạo kết nối Redis cho RedisAuth với database 1
+	bootstrap.RedisAuth = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 01)
+	// Khởi tạo kết nối Redis cho RedisUser với database 2
+	bootstrap.RedisUser = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 02)
 }
 
 func main() {
