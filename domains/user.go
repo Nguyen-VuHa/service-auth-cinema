@@ -2,6 +2,7 @@ package domains
 
 import (
 	"auth-service/models"
+	"time"
 )
 
 type UserRepository interface {
@@ -12,4 +13,14 @@ type UserRepository interface {
 
 type UserProfileRepository interface {
 	Create(userProfile *models.UserProfile) error
+}
+
+type UserRedisCache struct {
+	UserID        string    `json:"user_id"`
+	Email         string    `json:"email"`
+	UserStatus    string    `json:"user_status"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	LoginMethodID uint      `json:"login_method_id"`
+	LoginMethod   string    `json:"login_method"`
 }

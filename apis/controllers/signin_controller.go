@@ -87,10 +87,24 @@ func (sc *SignInController) SignIn(c *gin.Context) {
 		return
 	}
 
-	// 6. Tạo token gửi về cho người dùng.
+	// 6. Tạo token gửi về cho người dùng +  Lưu thông tin cơ bản của người dùng lên Redis để caching data.
+	dataResponse, err := sc.SignInUsecase.CreateTokenAndDataResponse(userData, request)
 
-	// 7. Lưu thông tin cơ bản của người dùng lên Redis để caching data.
+	if err != nil {
+		// set data trả về
+		response.Code = constants.CODE_BAD_REQUEST
+		response.Status = constants.STATUS_BAD_REQUEST
+		response.Message = "NETWORK ERROR."
 
-	//
-	c.JSON(200, gin.H{"message": "hello"})
+		c.JSON(http.StatusInternalServerError, response)
+		return
+	}
+
+	// set data trả về
+	response.Code = constants.CODE_SUCCESS
+	response.Status = constants.STATUS_SUCCESS
+	response.Message = "Login success."
+	response.Data = dataResponse
+
+	c.JSON(http.StatusOK, response)
 }

@@ -1,9 +1,9 @@
 package usecases
 
 import (
-	"auth-service/bootstrap"
 	"auth-service/constants"
 	"auth-service/domains"
+	"auth-service/internal/jwt_util"
 	"auth-service/models"
 	"auth-service/utils"
 	"context"
@@ -12,23 +12,21 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 type signInUsecase struct {
-	userRepository domains.UserRepository
-	valRepository  domains.ValidateRepository
-	ctx            context.Context
-	redisUser      *redis.Client
+	userRepository  domains.UserRepository
+	valRepository   domains.ValidateRepository
+	redisRepository domains.RedisRepository
+	ctx             context.Context
 }
 
-func NewSignInUsecase(userRepository domains.UserRepository, valRepository domains.ValidateRepository) domains.SignInUsecase {
+func NewSignInUsecase(userRepository domains.UserRepository, valRepository domains.ValidateRepository, redisRepository domains.RedisRepository) domains.SignInUsecase {
 	return &signInUsecase{
 		userRepository,
 		valRepository,
+		redisRepository,
 		context.Background(),
-		bootstrap.RedisUser,
 	}
 }
 
@@ -59,12 +57,12 @@ func (su *signInUsecase) ComparePasswordUser(passwordHash, passwordInput string)
 
 func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRequest domains.SignInRequest) error {
 	if userData.UserStatus == constants.USER_STATUS_PENDING { // chưa xác thực
-		// tạo mã OTP bằng key DEVICE_SECRET_KEY + UserID + Device + IP
-		otpData := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(userData.UserID) + signInRequest.Device + signInRequest.IpAddress
+		// tạo mã OTP bằng key DEVICE_SECRET_KEY + UserID + Device
+		otpData := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(userData.UserID) + signInRequest.Device
 
-		valueRedis, err := su.getDataRedisUser(otpData)
+		valueRedis, err := su.redisRepository.RedisUserGet(otpData)
 
-		if err != nil || valueRedis != "" {
+		if (fmt.Sprint(err) != "redis: nil" && err != nil) || valueRedis != "" {
 			return nil
 		}
 
@@ -76,13 +74,14 @@ func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRe
 
 		ttl := time.Minute // Thời gian cache là 1 phút
 		// lưu redis hash với key là secret và value là true thời gian hết là 60 seconds
-		errSaveRedis := su.redisUser.Set(su.ctx, otpData, secret, ttl).Err()
+		errSaveRedis := su.redisRepository.RedisUserSet(otpData, secret, ttl)
 
 		if errSaveRedis != nil {
 			fmt.Println("lỗi lưu data redis", errSaveRedis)
 			return errSaveRedis
 		}
 
+		// fmt.Println(otp)
 		// send OTP qua mail của user
 		errSentOTP := su.sendOtpViaMail(signInRequest, otp)
 
@@ -93,6 +92,73 @@ func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRe
 	}
 
 	return nil
+}
+
+func (su *signInUsecase) CreateTokenAndDataResponse(userData models.User, signInRequest domains.SignInRequest) (domains.DataSignInResponse, error) {
+	var dataReponse domains.DataSignInResponse
+
+	// set user_id cho response
+	dataReponse.UserID = userData.UserID
+
+	if userData.UserStatus == constants.USER_STATUS_ACTIVE {
+		// tạo token và thông tin user trả về cho người dùng
+		var tokenData domains.JWTToken
+		tokenData.UserID = userData.UserID
+
+		// lấy secret key trong .env
+		signAccess := os.Getenv(constants.JWT_REFRESH_SECRET)
+		signRefresh := os.Getenv(constants.JWT_REFRESH_SECRET)
+
+		// divice + hash secret - để kiểm tra người dùng phải sử dụng đúng thiết bị mà user đăng nhập.
+		signHashAccess := signAccess + signInRequest.Device
+		signHashRefresh := signRefresh + signInRequest.Device
+
+		accessToken, err := jwt_util.CreateAccessToken(tokenData, signHashAccess)
+
+		if err != nil { // create Token failed.
+			return dataReponse, err
+		}
+
+		refreshToken, err := jwt_util.CreateRefreshToken(tokenData, signHashRefresh)
+
+		if err != nil { // create Token failed.
+			return dataReponse, err
+		}
+
+		// set  token cho response
+		dataReponse.AccessToken = accessToken
+		dataReponse.RefreshToken = refreshToken
+
+		var userDataCache domains.UserRedisCache
+
+		userDataCache.UserID = fmt.Sprint(userData.UserID)
+		userDataCache.Email = userData.Email
+		userDataCache.UserStatus = string(userData.UserStatus)
+		userDataCache.CreatedAt = userData.CreatedAt
+		userDataCache.UpdatedAt = userData.UpdatedAt
+		userDataCache.LoginMethodID = userData.LoginMethodID
+		userDataCache.LoginMethod = userData.LoginMethod.LoginMethod
+
+		userDataMapString := utils.StructureToMapString(userDataCache)
+		// lưu trữ thông tin user trên Redis với key là user_id
+		timeToLiveUserData := time.Hour * 24 // Thời gian cache là 1 ngày
+		su.redisRepository.RedisUserHMSet(fmt.Sprint(userData.UserID), userDataMapString, timeToLiveUserData)
+
+		// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device
+		signRedis := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(userData.UserID) + signInRequest.Device
+
+		var redisDataJWT domains.RedisDataJWT
+
+		redisDataJWT.Device = signInRequest.Device
+		redisDataJWT.AccessToken = accessToken
+		redisDataJWT.RefreshToken = refreshToken
+
+		redisDataJWTMapString := utils.StructureToMapString(redisDataJWT)
+		timeToLiveJWTData := time.Hour * 24 * 30 // Thời gian cache là 30 ngày = thời gian hết hạn của refresh token
+		su.redisRepository.RedisAuthHMSet(signRedis, redisDataJWTMapString, timeToLiveJWTData)
+	}
+
+	return dataReponse, nil
 }
 
 // function validation email
@@ -140,17 +206,6 @@ func (su *signInUsecase) isPasswordValid(password string) error {
 	}
 
 	return nil
-}
-
-// function get data on Redis
-func (su *signInUsecase) getDataRedisUser(keyRedis string) (string, error) {
-	val, err := su.redisUser.Get(su.ctx, keyRedis).Result()
-
-	if fmt.Sprint(err) == "redis: nil" {
-		return val, nil
-	}
-
-	return val, err
 }
 
 // function get data on Redis

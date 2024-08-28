@@ -10,10 +10,11 @@ import (
 )
 
 func NewSignInRouter(group *gin.RouterGroup) {
-	useRepo := repository.NewUserRepository(bootstrap.DB)
+	userRepo := repository.NewUserRepository(bootstrap.DB)
 	validateRepo := repository.NewValidation()
+	redisRepo := repository.NewRedisRepository()
 
-	signInUsercase := usecases.NewSignInUsecase(useRepo, validateRepo)
+	signInUsercase := usecases.NewSignInUsecase(userRepo, validateRepo, redisRepo)
 	sc := controllers.SignInController{
 		SignInUsecase: signInUsercase,
 	}
