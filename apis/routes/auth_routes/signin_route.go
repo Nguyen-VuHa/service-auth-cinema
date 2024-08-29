@@ -13,8 +13,9 @@ func NewSignInRouter(group *gin.RouterGroup) {
 	userRepo := repository.NewUserRepository(bootstrap.DB)
 	validateRepo := repository.NewValidation()
 	redisRepo := repository.NewRedisRepository()
+	serviceMailRepo := repository.NewServiceMailRepository()
 
-	signInUsercase := usecases.NewSignInUsecase(userRepo, validateRepo, redisRepo)
+	signInUsercase := usecases.NewSignInUsecase(userRepo, validateRepo, redisRepo, serviceMailRepo)
 	sc := controllers.SignInController{
 		SignInUsecase: signInUsercase,
 	}

@@ -49,7 +49,7 @@ func (sc *SignInController) SignIn(c *gin.Context) {
 	request.Device = utils.GetDevice(c)
 
 	// 3. Kiểm tra tồn tại của email trên database
-	userData, err := sc.SignInUsecase.GetUserByEmail(request.Email)
+	userData, passwordHash, err := sc.SignInUsecase.GetUserByEmail(request.Email)
 
 	if err != nil {
 		// set data trả về
@@ -62,7 +62,7 @@ func (sc *SignInController) SignIn(c *gin.Context) {
 	}
 
 	// 4. Confirm password với dữ liệu trong hệ thống.
-	err = sc.SignInUsecase.ComparePasswordUser(userData.Password, request.Password)
+	err = sc.SignInUsecase.ComparePasswordUser(passwordHash, request.Password)
 
 	if err != nil {
 		// set data trả về

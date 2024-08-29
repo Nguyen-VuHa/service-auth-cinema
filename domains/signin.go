@@ -1,11 +1,5 @@
 package domains
 
-import (
-	"auth-service/models"
-
-	"github.com/google/uuid"
-)
-
 type SignInRequest struct {
 	Email     string `json:"email"`
 	Password  string `json:"password"`
@@ -19,15 +13,15 @@ type SignInResponse struct {
 }
 
 type DataSignInResponse struct {
-	UserID       uuid.UUID `json:"user_id"`
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
+	UserID       string `json:"user_id"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type SignInUsecase interface {
 	ValidateDataRequest(signInRequest SignInRequest) error
-	GetUserByEmail(email string) (models.User, error)
+	GetUserByEmail(email string) (UserDTO, string, error) // string là password lấy ra để so sánh với password nhập vào
 	ComparePasswordUser(passwordHash, passwordInput string) error
-	CheckAccountVerification(userData models.User, signInRequest SignInRequest) error
-	CreateTokenAndDataResponse(userData models.User, signInRequest SignInRequest) (DataSignInResponse, error)
+	CheckAccountVerification(userData UserDTO, signInRequest SignInRequest) error
+	CreateTokenAndDataResponse(userData UserDTO, signInRequest SignInRequest) (DataSignInResponse, error)
 }

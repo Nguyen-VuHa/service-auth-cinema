@@ -4,12 +4,9 @@ import (
 	"auth-service/constants"
 	"auth-service/domains"
 	"auth-service/internal/jwt_util"
-	"auth-service/models"
 	"auth-service/utils"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"time"
 )
@@ -18,14 +15,19 @@ type signInUsecase struct {
 	userRepository  domains.UserRepository
 	valRepository   domains.ValidateRepository
 	redisRepository domains.RedisRepository
+	serviceMailRepo domains.ServiceMailRepository
 	ctx             context.Context
 }
 
-func NewSignInUsecase(userRepository domains.UserRepository, valRepository domains.ValidateRepository, redisRepository domains.RedisRepository) domains.SignInUsecase {
+func NewSignInUsecase(
+	userRepository domains.UserRepository, valRepository domains.ValidateRepository,
+	redisRepository domains.RedisRepository, serviceMailRepository domains.ServiceMailRepository,
+) domains.SignInUsecase {
 	return &signInUsecase{
 		userRepository,
 		valRepository,
 		redisRepository,
+		serviceMailRepository,
 		context.Background(),
 	}
 }
@@ -45,8 +47,24 @@ func (su *signInUsecase) ValidateDataRequest(signInRequest domains.SignInRequest
 	return nil
 }
 
-func (su *signInUsecase) GetUserByEmail(email string) (models.User, error) {
-	return su.userRepository.GetByEmail(email)
+func (su *signInUsecase) GetUserByEmail(email string) (domains.UserDTO, string, error) { // string là password lấy ra để so sánh khi đăng nhập
+	var userData domains.UserDTO
+
+	userModel, err := su.userRepository.GetByEmailPreload(email, "LoginMethod")
+
+	if err != nil {
+		return userData, "", err
+	}
+
+	userData.UserID = fmt.Sprint(userModel.UserID)
+	userData.Email = userModel.Email
+	userData.UserStatus = string(userModel.UserStatus)
+	userData.LoginMethod = userModel.LoginMethod.LoginMethod
+	userData.LoginMethodID = userModel.LoginMethodID
+	userData.CreatedAt = userModel.CreatedAt
+	userData.UpdatedAt = userModel.UpdatedAt
+
+	return userData, userModel.Password, nil
 }
 
 func (su *signInUsecase) ComparePasswordUser(passwordHash, passwordInput string) error {
@@ -55,7 +73,7 @@ func (su *signInUsecase) ComparePasswordUser(passwordHash, passwordInput string)
 	return errValid
 }
 
-func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRequest domains.SignInRequest) error {
+func (su *signInUsecase) CheckAccountVerification(userData domains.UserDTO, signInRequest domains.SignInRequest) error {
 	if userData.UserStatus == constants.USER_STATUS_PENDING { // chưa xác thực
 		// tạo mã OTP bằng key DEVICE_SECRET_KEY + UserID + Device
 		otpData := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(userData.UserID) + signInRequest.Device
@@ -83,7 +101,15 @@ func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRe
 
 		// fmt.Println(otp)
 		// send OTP qua mail của user
-		errSentOTP := su.sendOtpViaMail(signInRequest, otp)
+		sendOTPParams := map[string]interface{}{
+			"_mail":   signInRequest.Email,
+			"_otp":    otp,
+			"_ip":     signInRequest.IpAddress,
+			"_device": signInRequest.Device,
+			"_secret": os.Getenv(constants.SERVICE_SECRET),
+		}
+
+		errSentOTP := su.serviceMailRepo.SendOTPCodeToMail(sendOTPParams)
 
 		if errSentOTP != nil {
 			fmt.Println(errSentOTP)
@@ -94,7 +120,7 @@ func (su *signInUsecase) CheckAccountVerification(userData models.User, signInRe
 	return nil
 }
 
-func (su *signInUsecase) CreateTokenAndDataResponse(userData models.User, signInRequest domains.SignInRequest) (domains.DataSignInResponse, error) {
+func (su *signInUsecase) CreateTokenAndDataResponse(userData domains.UserDTO, signInRequest domains.SignInRequest) (domains.DataSignInResponse, error) {
 	var dataReponse domains.DataSignInResponse
 
 	// set user_id cho response
@@ -129,20 +155,13 @@ func (su *signInUsecase) CreateTokenAndDataResponse(userData models.User, signIn
 		dataReponse.AccessToken = accessToken
 		dataReponse.RefreshToken = refreshToken
 
-		var userDataCache domains.UserRedisCache
+		userDataMapString := utils.StructureToMapString(userData)
 
-		userDataCache.UserID = fmt.Sprint(userData.UserID)
-		userDataCache.Email = userData.Email
-		userDataCache.UserStatus = string(userData.UserStatus)
-		userDataCache.CreatedAt = userData.CreatedAt
-		userDataCache.UpdatedAt = userData.UpdatedAt
-		userDataCache.LoginMethodID = userData.LoginMethodID
-		userDataCache.LoginMethod = userData.LoginMethod.LoginMethod
-
-		userDataMapString := utils.StructureToMapString(userDataCache)
 		// lưu trữ thông tin user trên Redis với key là user_id
 		timeToLiveUserData := time.Hour * 24 // Thời gian cache là 1 ngày
 		su.redisRepository.RedisUserHMSet(fmt.Sprint(userData.UserID), userDataMapString, timeToLiveUserData)
+		// lưu trữ thông tin user trên Redis với key là email để cache dữ liệu
+		su.redisRepository.RedisUserHMSet(fmt.Sprint(userData.Email), userDataMapString, timeToLiveUserData)
 
 		// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device
 		signRedis := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(userData.UserID) + signInRequest.Device
@@ -204,58 +223,6 @@ func (su *signInUsecase) isPasswordValid(password string) error {
 	if errIsLength != nil {
 		return errIsLength
 	}
-
-	return nil
-}
-
-// function get data on Redis
-func (su *signInUsecase) sendOtpViaMail(signInRequest domains.SignInRequest, otp string) error {
-	// URL của API bạn muốn gọi
-	url := os.Getenv(constants.URL_API_SERVICE) + constants.PATH_SEND_EMAIL_OTP
-	params := map[string]interface{}{
-		"_mail":   signInRequest.Email,
-		"_otp":    otp,
-		"_ip":     signInRequest.IpAddress,
-		"_device": signInRequest.Device,
-		"_secret": os.Getenv(constants.SERVICE_SECRET),
-	}
-
-	urlSendOTP, err := utils.AddParamsToURL(url, params)
-
-	if err != nil {
-		return err
-	}
-
-	// Tạo một request mới
-	req, err := http.NewRequest("GET", urlSendOTP, nil)
-
-	if err != nil {
-		return err
-	}
-
-	// Tạo một HTTP client
-	client := &http.Client{}
-
-	// Thực hiện request
-	response, err := client.Do(req)
-
-	if err != nil {
-		fmt.Println("Error making GET request:", err)
-		return err
-	}
-
-	defer response.Body.Close()
-
-	// Đọc toàn bộ nội dung của response body
-	body, err := io.ReadAll(response.Body)
-
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-		return err
-	}
-
-	// In ra nội dung response
-	fmt.Println("Response Body:", string(body))
 
 	return nil
 }

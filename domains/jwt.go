@@ -2,12 +2,10 @@ package domains
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type JWTToken struct {
-	UserID uuid.UUID
+	UserID string
 	Exp    time.Duration
 }
 

@@ -19,8 +19,8 @@ type redisRepository struct {
 
 func NewRedisRepository() domains.RedisRepository {
 	return &redisRepository{
-		bootstrap.RedisAuth,
 		bootstrap.RedisUser,
+		bootstrap.RedisAuth,
 		context.Background(),
 	}
 }
@@ -70,6 +70,17 @@ func (r *redisRepository) RedisUserHMSet(redisKey string, redisValue interface{}
 	}
 
 	return nil
+}
+
+func (r *redisRepository) RedisUserHMGetAll(redisKey string) (map[string]string, error) {
+	result, err := r.redisUser.HGetAll(r.ctx, redisKey).Result()
+
+	if err != nil {
+		fmt.Println(err)
+		return result, err
+	}
+
+	return result, nil
 }
 
 func (r *redisRepository) RedisAuthHMSet(redisKey string, redisValue interface{}, timeToLive time.Duration) error {
