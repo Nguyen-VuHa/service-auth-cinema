@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/app/.env
+    ports:
+      - "192.168.1.121:5100:5100"
