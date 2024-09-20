@@ -27,6 +27,16 @@ func (u *userRepository) Create(user *models.User) error {
 	return nil
 }
 
+func (u *userRepository) Update(user *models.User) error {
+	updateAction := u.db.Save(&user)
+
+	if updateAction.Error != nil {
+		return updateAction.Error
+	}
+
+	return nil
+}
+
 func (u *userRepository) GetByEmail(email string) (models.User, error) {
 	var user models.User
 	err := u.db.Model(&models.User{}).Where("email = ?", email).First(&user).Error
