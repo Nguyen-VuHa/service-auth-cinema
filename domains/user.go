@@ -27,4 +27,7 @@ type UserDTO struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 	LoginMethodID uint      `json:"login_method_id"`
 	LoginMethod   string    `json:"login_method"`
+	PhoneNumber   string    `json:"phone_number"`
+	FullName      string    `json:"full_name"`
+	BirthDay      string    `json:"birth_day"`
 }

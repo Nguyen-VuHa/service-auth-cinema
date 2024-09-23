@@ -22,21 +22,22 @@ func init() {
 	// Lấy thông tin kết nối của Redis từ biến môi trường
 	var redisIPAddr = os.Getenv(constants.REDIS_ADDRESS)
 	var userName = os.Getenv(constants.REDIS_USERNAME)
-	var redisPassword = os.Getenv(constants.REDIS_USERNAME)
+	var redisPassword = os.Getenv(constants.REDIS_PASSWORD)
 
 	// Khởi tạo kết nối Redis cho RedisAuth với database 1
-	bootstrap.RedisAuth = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 01)
+	bootstrap.RedisAuth = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 01) // #01
 	// Khởi tạo kết nối Redis cho RedisUser với database 2
-	bootstrap.RedisUser = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 02)
+	bootstrap.RedisUser = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 02) // #02
 }
 
 func main() {
 	// khởi tạo mặt định Gin framework
 	r := gin.Default()
+
 	// // config CORS
 	config := cors.DefaultConfig()
 
-	config.AllowOrigins = []string{"*"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production
+	config.AllowOrigins = []string{"http://localhost:3000"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production
 	// config CORS allow các method request và các params trên header
 	config.AllowCredentials = true
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}

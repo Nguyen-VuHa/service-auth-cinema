@@ -50,7 +50,7 @@ func (su *signInUsecase) ValidateDataRequest(signInRequest domains.SignInRequest
 func (su *signInUsecase) GetUserByEmail(email string) (domains.UserDTO, string, error) { // string là password lấy ra để so sánh khi đăng nhập
 	var userData domains.UserDTO
 
-	userModel, err := su.userRepository.GetByEmailPreload(email, "LoginMethod")
+	userModel, err := su.userRepository.GetByEmailPreload(email, "LoginMethod", "Profiles")
 
 	if err != nil {
 		return userData, "", err
@@ -63,6 +63,17 @@ func (su *signInUsecase) GetUserByEmail(email string) (domains.UserDTO, string, 
 	userData.LoginMethodID = userModel.LoginMethodID
 	userData.CreatedAt = userModel.CreatedAt
 	userData.UpdatedAt = userModel.UpdatedAt
+
+	for _, profile := range userModel.Profiles {
+		switch profile.ProfileKey {
+		case "full_name":
+			userData.FullName = profile.ProfileValue
+		case "birth_day":
+			userData.BirthDay = profile.ProfileValue
+		case "phone_number":
+			userData.PhoneNumber = profile.ProfileValue
+		}
+	}
 
 	return userData, userModel.Password, nil
 }
@@ -132,7 +143,7 @@ func (su *signInUsecase) CreateTokenAndDataResponse(userData domains.UserDTO, si
 		tokenData.UserID = userData.UserID
 
 		// lấy secret key trong .env
-		signAccess := os.Getenv(constants.JWT_REFRESH_SECRET)
+		signAccess := os.Getenv(constants.JWT_ACCESS_SECRET)
 		signRefresh := os.Getenv(constants.JWT_REFRESH_SECRET)
 
 		// divice + hash secret - để kiểm tra người dùng phải sử dụng đúng thiết bị mà user đăng nhập.

@@ -102,3 +102,33 @@ func (r *redisRepository) RedisAuthHMSet(redisKey string, redisValue interface{}
 
 	return nil
 }
+
+func (r *redisRepository) RedisAuthHMGetFields(redisKey string, fields []string) (map[string]interface{}, error) {
+	var data_response = make(map[string]interface{})
+	// Perform HMGET
+	values, err := r.redisAuth.HMGet(r.ctx, redisKey, fields...).Result()
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return data_response, err
+	}
+
+	// Print the results
+	for i, value := range values {
+		data_response[fields[i]] = value
+	}
+
+	return data_response, nil
+}
+
+func (r *redisRepository) RedisAuthHSetUpdateField(redisKey string, field string, value interface{}) error {
+	// Thực hiện lệnh HSET
+	err := r.redisAuth.HSet(r.ctx, redisKey, field, value).Err()
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+
+	return nil
+}

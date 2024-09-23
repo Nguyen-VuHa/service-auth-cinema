@@ -2,7 +2,8 @@ package jwt_util
 
 import (
 	"auth-service/domains"
-	"os"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -28,7 +29,7 @@ func CreateJWTToken(data domains.JWTToken, signKey string) (string, error) {
 
 	// Ký token mới với khóa bí mật.
 	// Hàm SignedString sẽ trả về token đã ký dưới dạng chuỗi.
-	signToken, err := newToken.SignedString([]byte(os.Getenv(signKey)))
+	signToken, err := newToken.SignedString([]byte(signKey))
 
 	// Kiểm tra nếu có lỗi xảy ra trong quá trình ký token.
 	if err != nil {
@@ -36,6 +37,43 @@ func CreateJWTToken(data domains.JWTToken, signKey string) (string, error) {
 	}
 
 	return signToken, nil // Trả về token đã ký và nil cho lỗi (không có lỗi).
+}
+
+func VerifyJWTToken(tokenString string, signKey string) (*jwt.Token, error) {
+	// Parse token và xác thực chữ ký với phương pháp ký HS256.
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Kiểm tra xem phương pháp ký có đúng là HS256 không.
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		// Trả về khóa bí mật để xác thực chữ ký.
+		return []byte(signKey), nil
+	})
+
+	// Kiểm tra nếu có lỗi trong quá trình giải mã token.
+	if err != nil {
+		return nil, err
+	}
+
+	// Kiểm tra tính hợp lệ của token (có hợp lệ về chữ ký và chưa hết hạn hay không).
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		float_unix := claims["exp"].(float64)
+
+		// Chuyển đổi float64 sang int64 (Unix time theo giây)
+		seconds := int64(float_unix)
+
+		// Lấy thời gian hiện tại dưới dạng Unix timestamp
+		now := time.Now().Unix()
+
+		if now > seconds {
+			return token, errors.New("token expired")
+		}
+
+		return token, nil
+	} else {
+		return nil, fmt.Errorf("invalid token")
+	}
 }
 
 // CreateAccessToken tạo một token truy cập (access token) với thời gian hết hạn 30 phút.
