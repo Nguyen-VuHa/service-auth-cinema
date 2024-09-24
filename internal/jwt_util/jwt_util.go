@@ -39,7 +39,7 @@ func CreateJWTToken(data domains.JWTToken, signKey string) (string, error) {
 	return signToken, nil // Trả về token đã ký và nil cho lỗi (không có lỗi).
 }
 
-func VerifyJWTToken(tokenString string, signKey string) (*jwt.Token, error) {
+func VerifyJWTToken(tokenString string, signKey string) (string, error) {
 	// Parse token và xác thực chữ ký với phương pháp ký HS256.
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Kiểm tra xem phương pháp ký có đúng là HS256 không.
@@ -53,7 +53,7 @@ func VerifyJWTToken(tokenString string, signKey string) (*jwt.Token, error) {
 
 	// Kiểm tra nếu có lỗi trong quá trình giải mã token.
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Kiểm tra tính hợp lệ của token (có hợp lệ về chữ ký và chưa hết hạn hay không).
@@ -67,12 +67,12 @@ func VerifyJWTToken(tokenString string, signKey string) (*jwt.Token, error) {
 		now := time.Now().Unix()
 
 		if now > seconds {
-			return token, errors.New("token expired")
+			return "", errors.New("token expired")
 		}
 
-		return token, nil
+		return claims["user_id"].(string), nil
 	} else {
-		return nil, fmt.Errorf("invalid token")
+		return "", fmt.Errorf("invalid token")
 	}
 }
 

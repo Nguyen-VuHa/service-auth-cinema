@@ -20,7 +20,7 @@ func init() {
 
 	// Kết nối Redis Client
 	// Lấy thông tin kết nối của Redis từ biến môi trường
-	var redisIPAddr = os.Getenv(constants.REDIS_ADDRESS)
+	var redisIPAddr = os.Getenv(constants.REDIS_HOST)
 	var userName = os.Getenv(constants.REDIS_USERNAME)
 	var redisPassword = os.Getenv(constants.REDIS_PASSWORD)
 
@@ -66,6 +66,6 @@ func main() {
 		})
 	})
 
-	// run server với default port 8080 hoặc biến PORT trong .env
-	r.Run()
+	// run server với default port 5100 hoặc biến PORT trong .env
+	r.Run(":5100")
 }

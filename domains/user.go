@@ -13,6 +13,7 @@ type UserRepository interface {
 	GetByID(id string) (models.User, error)
 
 	GetByEmailPreload(email string, preloads ...interface{}) (models.User, error)
+	GetByIDPreload(user_id string, preloads ...interface{}) (models.User, error)
 }
 
 type UserProfileRepository interface {

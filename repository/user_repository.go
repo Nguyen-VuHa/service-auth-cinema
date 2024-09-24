@@ -65,3 +65,18 @@ func (u *userRepository) GetByEmailPreload(email string, preloads ...interface{}
 
 	return user, err
 }
+
+func (u *userRepository) GetByIDPreload(user_id string, preloads ...interface{}) (models.User, error) {
+	var user models.User
+
+	query := u.db.Model(&models.User{}).Where("user_id = ?", user_id)
+
+	// Lặp qua các preloads và áp dụng chúng vào query
+	for _, preload := range preloads {
+		query = query.Preload(preload.(string))
+	}
+
+	err := query.First(&user).Error
+
+	return user, err
+}
