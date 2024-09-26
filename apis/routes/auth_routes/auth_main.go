@@ -10,5 +10,6 @@ func AuthMainRouter(group *gin.RouterGroup) {
 		NewVerifyOTPRouter(authGroup)
 		NewRefreshTokenRouter(authGroup)
 		NewSignInFacebookRouter(authGroup)
+		NewCallbackFacebookRouter(authGroup)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/jwt_util"
 	"auth-service/repository"
 	"auth-service/utils"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -22,6 +23,35 @@ func VerifyTokenProfile() gin.HandlerFunc {
 		if tokenString == "" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
 			c.Abort()
+			return
+		}
+
+		tokenArr := strings.Split(tokenString, ".")
+
+		if len(tokenArr) > 1 {
+			methodID := tokenArr[0]
+			tokenPlatform := tokenArr[1]
+
+			if methodID == fmt.Sprint(constants.LOGIN_FACEBOOK_ID) {
+				facebook_app_id := os.Getenv(constants.FACEBOOK_APP_ID)
+				facebook_app_secret := os.Getenv(constants.FACEBOOK_SECRET)
+
+				is_valid, err := VerifyTokenFacebook(tokenPlatform, facebook_app_id+"|"+facebook_app_secret)
+
+				if err != nil {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
+					c.Abort()
+					return
+				}
+
+				if !is_valid {
+					c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
+					c.Abort()
+					return
+				}
+			}
+
+			c.Next()
 			return
 		}
 
