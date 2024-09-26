@@ -11,5 +11,6 @@ func AuthMainRouter(group *gin.RouterGroup) {
 		NewRefreshTokenRouter(authGroup)
 		NewSignInFacebookRouter(authGroup)
 		NewCallbackFacebookRouter(authGroup)
+		NewSignInGoogleRouter(authGroup)
 	}
 }

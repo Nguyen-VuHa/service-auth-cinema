@@ -12,7 +12,6 @@ type SignInFacebookController struct {
 }
 
 func (sfc *SignInFacebookController) SignInWithFacebook(c *gin.Context) {
-
 	auth_url, err := sfc.SignInFacebookUsecase.AuthFacebookURL()
 
 	if err != nil {

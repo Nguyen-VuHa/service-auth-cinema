@@ -36,6 +36,10 @@ type SignInFacebookUsecase interface {
 	AuthFacebookURL() (string, error)
 }
 
+type SignInGoogleUsecase interface {
+	AuthGoogleURL() (string, error)
+}
+
 type CallbackFacebookUsecase interface {
 	GetDetailUserWithCodeFacebook(code string) (DataCallbackSignInFacebook, error)
 	CreateUserLoginWithFacebook(data DataCallbackSignInFacebook) (DataSignInFacebookResponse, error)

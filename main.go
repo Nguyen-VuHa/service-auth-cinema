@@ -17,6 +17,7 @@ func init() {
 	bootstrap.MigrateDatabase()    // Khởi tạo database trong Models
 	bootstrap.InitLogger()         //  Khởi tạo logger cho service
 	bootstrap.ConfigFacebookAuth() //  Khởi tạo xác thực facebook cho service
+	bootstrap.ConfigGoogleAuth()   //  Khởi tạo xác thực google cho service
 
 	// Kết nối Redis Client
 	// Lấy thông tin kết nối của Redis từ biến môi trường
