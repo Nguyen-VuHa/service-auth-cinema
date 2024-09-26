@@ -4,6 +4,7 @@ import (
 	"auth-service/constants"
 	"auth-service/domains"
 	"auth-service/models"
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -34,13 +35,13 @@ func NewCallbackFacebookUsecase(
 func (cfu *callbackFacebookUsecase) GetDetailUserWithCodeFacebook(code string) (domains.DataCallbackSignInFacebook, error) {
 	var data_facebook domains.DataCallbackSignInFacebook
 
-	token, err := cfu.facebookConfig.Exchange(oauth2.NoContext, code)
+	token, err := cfu.facebookConfig.Exchange(context.Background(), code)
 	if err != nil {
 		// http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
 		return data_facebook, err
 	}
 
-	client := cfu.facebookConfig.Client(oauth2.NoContext, token)
+	client := cfu.facebookConfig.Client(context.Background(), token)
 	response, err := client.Get("https://graph.facebook.com/me?fields=id,name,email")
 	if err != nil {
 		// http.Error(w, "Failed to get user info: "+err.Error(), http.StatusInternalServerError)
@@ -95,11 +96,11 @@ func (cfu *callbackFacebookUsecase) CreateUserLoginWithFacebook(data domains.Dat
 	// set data cho barng profile
 	var user_facebook_profile = make(map[string]interface{})
 	user_facebook_profile[constants.USER_PROFILE_FULLNAME] = data.Name
+	user_facebook_profile[constants.USER_PROFILE_EMAIL_PLATFORM] = data.Email
 
-	var profile_keys = []string{constants.USER_PROFILE_FULLNAME}
+	var profile_keys = []string{constants.USER_PROFILE_FULLNAME, constants.USER_PROFILE_EMAIL_PLATFORM}
 
 	for _, key := range profile_keys { // 1 số biến object cần lưu vào user profile (FullName)
-
 		var userProfileData models.UserProfile // Khai báo biến để chứa thông tin detail user hợp lệ
 		userProfileData.ProfileKey = key
 		userProfileData.ProfileValue = user_facebook_profile[key].(string)

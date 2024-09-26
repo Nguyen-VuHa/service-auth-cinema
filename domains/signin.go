@@ -45,11 +45,6 @@ type CallbackFacebookUsecase interface {
 	CreateUserLoginWithFacebook(data DataCallbackSignInFacebook) (DataSignInFacebookResponse, error)
 }
 
-type CallbackSignInFacebookResponse struct {
-	ResponseBasic
-	Data DataSignInFacebookResponse `json:"data"`
-}
-
 type DataSignInFacebookResponse struct {
 	UserID      uuid.UUID `json:"uid"`
 	AccessToken string    `json:"access_token"`
@@ -63,4 +58,26 @@ type DataCallbackSignInFacebook struct {
 	AccessToken string    `json:"accessToken"`
 	TokenType   string    `json:"tokenType"`
 	Expiry      time.Time `json:"expiry"`
+}
+
+type CallbackGoogleUsecase interface {
+	GetDetailUserWithCodeGoogle(code string) (DataCallbackSignInGoogle, error)
+	CreateUserLoginWithGoogle(data DataCallbackSignInGoogle) (DataSignInGoogleResponse, error)
+}
+
+type DataCallbackSignInGoogle struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"tokenType"`
+	Expiry       time.Time `json:"expiry"`
+	Picture      string    `json:"picture"`
+}
+
+type DataSignInGoogleResponse struct {
+	UserID      uuid.UUID `json:"uid"`
+	AccessToken string    `json:"access_token"`
+	Method      uint      `json:"method"`
 }

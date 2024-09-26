@@ -22,7 +22,7 @@ func (sfu *signInGoogleUsecase) AuthGoogleURL() (string, error) {
 	url := ""
 
 	sign_state_google := os.Getenv(constants.GOOGLE_SIGN_KEY)
-	url = sfu.googleConfig.AuthCodeURL(sign_state_google)
+	url = sfu.googleConfig.AuthCodeURL(sign_state_google, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent"))
 
 	return url, nil
 }

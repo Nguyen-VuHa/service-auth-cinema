@@ -44,7 +44,10 @@ func ConfigGoogleAuth() {
 		ClientID:     google_client_id, // Thay bằng Client ID của bạn
 		ClientSecret: google_secret_id, // Thay bằng Client Secret của bạn
 		RedirectURL:  urlCallBack,      // URL nhận callback từ Google
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint:     google.Endpoint,
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.profile",
+			"https://www.googleapis.com/auth/userinfo.email",
+		},
+		Endpoint: google.Endpoint,
 	}
 }

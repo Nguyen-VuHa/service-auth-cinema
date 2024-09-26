@@ -17,7 +17,8 @@ const (
 
 // const key value trong bảng userProfile
 const (
-	USER_PROFILE_FULLNAME    = "full_name"
-	USER_PROFILE_BIRTHDAY    = "birth_day"
-	USER_PROFILE_PHONENUMBER = "phone_number"
+	USER_PROFILE_FULLNAME       = "full_name"
+	USER_PROFILE_BIRTHDAY       = "birth_day"
+	USER_PROFILE_PHONENUMBER    = "phone_number"
+	USER_PROFILE_EMAIL_PLATFORM = "email_platform"
 )
