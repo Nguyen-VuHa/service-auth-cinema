@@ -25,3 +25,7 @@ type SignInUsecase interface {
 	CheckAccountVerification(userData UserDTO, signInRequest SignInRequest) error
 	CreateTokenAndDataResponse(userData UserDTO, signInRequest SignInRequest) (DataSignInResponse, error)
 }
+
+type SignInFacebookUsecase interface {
+	AuthFacebookURL() (string, error)
+}

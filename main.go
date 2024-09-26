@@ -34,7 +34,7 @@ func main() {
 	// khởi tạo mặt định Gin framework
 	r := gin.Default()
 
-	// // config CORS
+	// config CORS
 	config := cors.DefaultConfig()
 
 	config.AllowOrigins = []string{"http://localhost:3000"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production

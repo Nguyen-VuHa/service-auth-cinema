@@ -76,12 +76,12 @@ func VerifyJWTToken(tokenString string, signKey string) (string, error) {
 	}
 }
 
-// CreateAccessToken tạo một token truy cập (access token) với thời gian hết hạn 30 phút.
+// CreateAccessToken tạo một token truy cập (access token) với thời gian hết hạn 1 tiếng.
 // Nó sử dụng hàm CreateJWTToken để tạo và ký token.
 func CreateAccessToken(dataToken domains.JWTToken, signKey string) (string, error) {
-	// Thiết lập thời gian hết hạn cho token là 30 phút.
+	// Thiết lập thời gian hết hạn cho token là 1 tiếng.
 	// Bạn có thể thay đổi giá trị này nếu cần.
-	dataToken.Exp = time.Minute * 30
+	dataToken.Exp = time.Hour
 
 	// Gọi hàm CreateJWTToken để tạo và ký token truy cập với khóa bí mật
 	accessToken, errAccessToken := CreateJWTToken(dataToken, signKey)
