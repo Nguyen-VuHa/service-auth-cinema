@@ -44,6 +44,13 @@ func (cgu *callbackGoogleUsecase) GetDetailUserWithCodeGoogle(code string) (doma
 		return data_google, err
 	}
 
+	// Lấy id_token từ Extra
+	id_token, ok := token.Extra("id_token").(string)
+
+	if !ok {
+		return data_google, fmt.Errorf("id_token not found in token response")
+	}
+
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 
 	if err != nil {
@@ -59,7 +66,7 @@ func (cgu *callbackGoogleUsecase) GetDetailUserWithCodeGoogle(code string) (doma
 		return data_google, err
 	}
 
-	data_google.AccessToken = token.AccessToken
+	data_google.AccessToken = id_token
 	data_google.RefreshToken = token.RefreshToken
 	data_google.Expiry = token.Expiry
 

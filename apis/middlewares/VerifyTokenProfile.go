@@ -13,6 +13,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Hàm kiểm tra ID
+func isMethodLoginNotInvalid(id string, ids []string) bool {
+	// Tạo map để lưu trữ ID
+	idMap := make(map[string]struct{})
+
+	// Thêm tất cả ID vào map
+	for _, v := range ids {
+		idMap[v] = struct{}{} // struct{} là một kiểu không chứa giá trị
+	}
+
+	// Kiểm tra xem ID có tồn tại trong map không
+	_, exists := idMap[id]
+
+	return !exists // Nếu không tồn tại thì trả về true
+}
+
 func VerifyTokenProfile() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user_id_params := c.Query("_user_id")
@@ -30,7 +46,18 @@ func VerifyTokenProfile() gin.HandlerFunc {
 
 		if len(tokenArr) > 1 {
 			methodID := tokenArr[0]
-			tokenPlatform := tokenArr[1]
+			tokenPlatform := strings.Join(tokenArr[1:], ".")
+
+			// kiểm tra chỉ method thuộc các phương thức đặt biệt mới xác thực.
+			arr_method := []string{fmt.Sprint(constants.LOGIN_FACEBOOK_ID), fmt.Sprint(constants.LOGIN_GOOGLE_ID)}
+
+			mothod_is_valid := isMethodLoginNotInvalid(methodID, arr_method)
+
+			if mothod_is_valid {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
+				c.Abort()
+				return
+			}
 
 			if methodID == fmt.Sprint(constants.LOGIN_FACEBOOK_ID) {
 				facebook_app_id := os.Getenv(constants.FACEBOOK_APP_ID)
@@ -46,6 +73,22 @@ func VerifyTokenProfile() gin.HandlerFunc {
 
 				if !is_valid {
 					c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
+					c.Abort()
+					return
+				}
+			}
+
+			if methodID == fmt.Sprint(constants.LOGIN_GOOGLE_ID) {
+				is_valid_google, err := VerifyTokenGoogle(tokenPlatform)
+
+				if err != nil {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Token invalid"})
+					c.Abort()
+					return
+				}
+
+				if !is_valid_google {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Token invalid"})
 					c.Abort()
 					return
 				}
