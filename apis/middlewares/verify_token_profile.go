@@ -84,10 +84,12 @@ func VerifyTokenProfile() gin.HandlerFunc {
 			return
 		}
 
-		if user_id_params != user_id {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
-			c.Abort()
-			return
+		if user_id_params != "" {
+			if user_id_params != user_id {
+				c.JSON(http.StatusForbidden, gin.H{"error": "Permission Denied"})
+				c.Abort()
+				return
+			}
 		}
 
 		// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device

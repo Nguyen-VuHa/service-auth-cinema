@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,25 +25,25 @@ func init() {
 	var redisPassword = os.Getenv(constants.REDIS_PASSWORD)
 
 	// Khởi tạo kết nối Redis cho RedisAuth với database 1
-	bootstrap.RedisAuth = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 01) // #01
+	bootstrap.RedisAuth = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 0) // #01
 	// Khởi tạo kết nối Redis cho RedisUser với database 2
-	bootstrap.RedisUser = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 02) // #02
+	bootstrap.RedisUser = bootstrap.InitRedis(redisIPAddr, userName, redisPassword, 0) // #02
 }
 
 func main() {
 	// khởi tạo mặt định Gin framework
 	r := gin.Default()
 
-	// config CORS
-	config := cors.DefaultConfig()
+	// // config CORS
+	// config := cors.DefaultConfig()
 
-	config.AllowOrigins = []string{"http://localhost:3000"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production
-	// config CORS allow các method request và các params trên header
-	config.AllowCredentials = true
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	// config.AllowOrigins = []string{"http://localhost:3000"} // Có thể thay đổi "*" với domain khi triển khai lên môi trường production
+	// // config CORS allow các method request và các params trên header
+	// config.AllowCredentials = true
+	// config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	// config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 
-	r.Use(cors.New(config)) // set router đi vào CORS kiểm tra trước khi server chuyển hướng router để xử lý
+	// r.Use(cors.New(config)) // set router đi vào CORS kiểm tra trước khi server chuyển hướng router để xử lý
 
 	// API default -> kiểm tra server khi run
 	r.GET("/hello-world", func(c *gin.Context) {
