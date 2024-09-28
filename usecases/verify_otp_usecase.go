@@ -41,13 +41,13 @@ func (votp *verifyOTPUsecase) ValidateEmail(email string) (models.User, bool, er
 
 // checking OTP gửi lên
 func (votp *verifyOTPUsecase) CheckOTPValid(data_request domains.VerifyOTPRequest, user_data models.User) (bool, error) {
-	otpData := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(user_data.UserID) + data_request.Device
-
-	fmt.Println(otpData)
+	var user_id_str string = fmt.Sprint(user_data.UserID)
+	otpData := user_id_str + data_request.Device
 
 	secret_otp, err := votp.redisRepo.RedisUserGet(otpData)
 
 	if err != nil {
+		fmt.Println("lay otp data failed")
 		return false, err
 	}
 
@@ -104,11 +104,13 @@ func (votp *verifyOTPUsecase) UpdateUser(data_request domains.VerifyOTPRequest, 
 	// lưu trữ thông tin user trên Redis với key là user_id
 	timeToLiveUserData := time.Hour * 24 // Thời gian cache là 1 ngày
 	votp.redisRepo.RedisUserHMSet(fmt.Sprint(user_data.UserID), userDataMapString, timeToLiveUserData)
-	// lưu trữ thông tin user trên Redis với key là email để cache dữ liệu
-	votp.redisRepo.RedisUserHMSet(fmt.Sprint(user_data.Email), userDataMapString, timeToLiveUserData)
 
+	// lưu trữ thông tin user trên Redis với key là email để cache dữ liệu
+	votp.redisRepo.RedisUserHMSet(user_data.Email, userDataMapString, timeToLiveUserData)
+
+	var secret_device_str string = os.Getenv(constants.DEVICE_SECRET_KEY)
 	// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device
-	signRedis := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(user_data.UserID) + data_request.Device
+	signRedis := secret_device_str + fmt.Sprint(user_data.UserID) + data_request.Device
 
 	var redisDataJWT domains.RedisDataJWT
 

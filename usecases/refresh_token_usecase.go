@@ -33,7 +33,7 @@ func NewRefreshTokenUsecase(
 
 func (rfu *refreshTokenUsecase) ValidateRefreshToken(data domains.RefreshTokenRequest) error {
 	// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device
-	signRedis := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(data.UserID) + data.Device
+	signRedis := os.Getenv(constants.DEVICE_SECRET_KEY) + data.UserID + data.Device
 
 	fields := []string{"RefreshToken"}
 
@@ -62,7 +62,7 @@ func (rfu *refreshTokenUsecase) ValidateRefreshToken(data domains.RefreshTokenRe
 
 func (rfu *refreshTokenUsecase) CreateRefreshToken(data domains.RefreshTokenRequest) (string, error) {
 	// tạo redis key bằng keyDEVICE_SECRET_KEY + UserID + Device
-	sign_redis := os.Getenv(constants.DEVICE_SECRET_KEY) + fmt.Sprint(data.UserID) + data.Device
+	sign_redis := os.Getenv(constants.DEVICE_SECRET_KEY) + data.UserID + data.Device
 
 	// tạo token và thông tin user trả về cho người dùng
 	var token_data domains.JWTToken
