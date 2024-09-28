@@ -4,18 +4,30 @@ import (
 	"auth-service/constants"
 	"auth-service/domains"
 	"auth-service/internal/jwt_util"
+	"auth-service/utils"
 	"errors"
 	"fmt"
 	"os"
+	"time"
+
+	"golang.org/x/oauth2"
 )
 
 type refreshTokenUsecase struct {
-	redisRepo domains.RedisRepository
+	redisRepo      domains.RedisRepository
+	thirdPartyRepo domains.ThirdPartyRepository
+	googleConfig   *oauth2.Config
 }
 
-func NewRefreshTokenUsecase(redisRepo domains.RedisRepository) domains.RefreshTokenUsecase {
+func NewRefreshTokenUsecase(
+	redisRepo domains.RedisRepository,
+	thirdPartyRepo domains.ThirdPartyRepository,
+	googleConfig *oauth2.Config,
+) domains.RefreshTokenUsecase {
 	return &refreshTokenUsecase{
 		redisRepo,
+		thirdPartyRepo,
+		googleConfig,
 	}
 }
 
@@ -72,6 +84,46 @@ func (rfu *refreshTokenUsecase) CreateRefreshToken(data domains.RefreshTokenRequ
 		fmt.Println("Save Redis failed", err)
 		return "", err
 	}
+
+	return access_token, nil
+}
+
+func (rfu *refreshTokenUsecase) ValidateTokenGoogle(user_id, access_token string) (bool, error) {
+	// Kiểm tra xem có đúng user đó không
+	fields := []string{"AccessToken"}
+	data_redis, err := rfu.redisRepo.RedisAuthHMGetFields(user_id, fields)
+
+	if err != nil {
+		return false, err
+	}
+
+	if data_redis["AccessToken"] != access_token {
+		return false, errors.New("token mismatch")
+	}
+
+	return true, nil
+}
+
+func (rfu *refreshTokenUsecase) CreateRefreshTokenGoogle(user_id string) (string, error) {
+	// tạo token và thông tin user trả về cho người dùng
+	var tokenData domains.JWTToken
+
+	tokenData.UserID = fmt.Sprint(user_id)
+	// lấy secret key trong .env
+	sign_access := os.Getenv(constants.JWT_ACCESS_SECRET)
+	access_token, err := jwt_util.CreateAccessToken(tokenData, sign_access)
+
+	if err != nil { // create Token failed.
+		return "", err
+	}
+
+	var redisDataJWT domains.RedisDataJWT
+
+	redisDataJWT.AccessToken = access_token
+	redisDataJWTMapString := utils.StructureToMapString(redisDataJWT)
+
+	timeToLiveJWTData := time.Hour * 24 * 30 // Thời gian cache là 30 ngay
+	rfu.redisRepo.RedisAuthHMSet(fmt.Sprint(user_id), redisDataJWTMapString, timeToLiveJWTData)
 
 	return access_token, nil
 }

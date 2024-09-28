@@ -26,3 +26,11 @@ func (u *thirdPartyRepository) Create(user *models.AuthThirdParty) error {
 
 	return nil
 }
+
+func (u *thirdPartyRepository) GetByUserID(user_id string) (models.AuthThirdParty, error) {
+	var third_party_token models.AuthThirdParty
+
+	err := u.db.Model(&models.AuthThirdParty{}).Where("user_id = ?", user_id).First(&third_party_token).Error
+
+	return third_party_token, err
+}

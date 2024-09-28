@@ -3,12 +3,16 @@ package usecases
 import (
 	"auth-service/constants"
 	"auth-service/domains"
+	"auth-service/internal/jwt_util"
 	"auth-service/models"
+	"auth-service/utils"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -18,6 +22,7 @@ type callbackGoogleUsecase struct {
 	userRepo        domains.UserRepository
 	userProfileRepo domains.UserProfileRepository
 	thirdPartyRepo  domains.ThirdPartyRepository
+	redisRepo       domains.RedisRepository
 }
 
 func NewCallbackGoogleUsecase(
@@ -25,12 +30,14 @@ func NewCallbackGoogleUsecase(
 	userRepo domains.UserRepository,
 	userProfileRepo domains.UserProfileRepository,
 	thirdPartyRepo domains.ThirdPartyRepository,
+	redisRepo domains.RedisRepository,
 ) domains.CallbackGoogleUsecase {
 	return &callbackGoogleUsecase{
 		googleConfig,
 		userRepo,
 		userProfileRepo,
 		thirdPartyRepo,
+		redisRepo,
 	}
 }
 
@@ -79,15 +86,47 @@ func (cgu *callbackGoogleUsecase) CreateUserLoginWithGoogle(data domains.DataCal
 	email_google := data.ID + "@google.com"
 	// kiểm tra email google tồn tại chưa
 	user_google, err := cgu.userRepo.GetByEmail(email_google)
-
-	data_response.AccessToken = data.AccessToken
 	data_response.Method = constants.LOGIN_GOOGLE_ID
 
 	if err == nil {
+		// tạo token và thông tin user trả về cho người dùng
+		var tokenData domains.JWTToken
+
+		tokenData.UserID = fmt.Sprint(user_google.UserID)
+		// lấy secret key trong .env
+		sign_access := os.Getenv(constants.JWT_ACCESS_SECRET)
+		access_token, err := jwt_util.CreateAccessToken(tokenData, sign_access)
+
+		if err != nil { // create Token failed.
+			return data_response, err
+		}
+
+		data_response.AccessToken = access_token
 		data_response.UserID = user_google.UserID
+
+		var redisDataJWT domains.RedisDataJWT
+
+		redisDataJWT.AccessToken = access_token
+		redisDataJWTMapString := utils.StructureToMapString(redisDataJWT)
+
+		timeToLiveJWTData := time.Hour * 24 * 30 // Thời gian cache là 30 ngày = thời gian hết hạn của refresh token
+		cgu.redisRepo.RedisAuthHMSet(fmt.Sprint(user_google.UserID), redisDataJWTMapString, timeToLiveJWTData)
 
 		return data_response, nil
 	}
+
+	var tokenData domains.JWTToken
+	tokenData.UserID = fmt.Sprint(user_google.UserID)
+	// lấy secret key trong .env
+	sign_access := os.Getenv(constants.JWT_ACCESS_SECRET)
+
+	access_token, err := jwt_util.CreateAccessToken(tokenData, sign_access)
+
+	if err != nil { // create Token failed.
+		return data_response, err
+	}
+
+	data_response.AccessToken = access_token
 
 	var user_google_create models.User
 
@@ -99,7 +138,6 @@ func (cgu *callbackGoogleUsecase) CreateUserLoginWithGoogle(data domains.DataCal
 	// create user
 	err = cgu.userRepo.Create(&user_google_create)
 
-	fmt.Println(err)
 	if err != nil {
 		return data_response, err
 	}
@@ -141,6 +179,14 @@ func (cgu *callbackGoogleUsecase) CreateUserLoginWithGoogle(data domains.DataCal
 	}
 
 	data_response.UserID = user_google_create.UserID
+
+	var redisDataJWT domains.RedisDataJWT
+
+	redisDataJWT.AccessToken = access_token
+	redisDataJWTMapString := utils.StructureToMapString(redisDataJWT)
+
+	timeToLiveJWTData := time.Hour * 24 * 30 // Thời gian cache là 30 ngày = thời gian hết hạn của refresh token
+	cgu.redisRepo.RedisAuthHMSet(fmt.Sprint(user_google_create.UserID), redisDataJWTMapString, timeToLiveJWTData)
 
 	return data_response, nil
 }
